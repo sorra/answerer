@@ -1,0 +1,35 @@
+package sorra.answerer.central;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.eclipse.jdt.core.dom.FieldDeclaration;
+import org.eclipse.jdt.core.dom.Type;
+import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
+import sorra.answerer.ast.AstFind;
+import sorra.answerer.util.StringUtil;
+
+public class SingleVariableCopier {
+  public static Optional<String> getLine(String fromVarName, String fromQname, String toVarName, List<VariableDeclarationFragment> toFields) {
+    String[] line = new String[1];
+    toFields.stream().anyMatch(vdFrag -> {
+      String fieldName = vdFrag.getName().getIdentifier();
+      if (fieldName.equals(fromVarName)) {
+        Type type = ((FieldDeclaration) vdFrag.getParent()).getType();
+        String fieldTypeQname = AstFind.qnameOfTypeRef(type);
+        if (isPrimitive(fieldTypeQname)) {
+          line[0] = String.format("%s.%s = Unbox.value(%s);", toVarName, fromVarName, fromVarName);
+        } else {
+          line[0] = String.format("%s.%s = %s;", toVarName, fieldName, fieldName);
+        }
+        return true;
+      }
+      return false;
+    });
+    return Optional.ofNullable(line[0]);
+  }
+
+  private static boolean isPrimitive(String fieldTypeQname) {
+    return StringUtil.isNotCapital(fieldTypeQname) && !fieldTypeQname.contains(".");
+  }
+}
