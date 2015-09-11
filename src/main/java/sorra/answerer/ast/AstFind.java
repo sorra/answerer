@@ -1,9 +1,6 @@
 package sorra.answerer.ast;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -45,10 +42,10 @@ public class AstFind {
       }
     }
     if (matchPackage != null) {
-      return matchPackage+"."+typeName;
+      return matchPackage + "." + typeName;
     }
     //TODO search * imports
-    return cu.getPackage().getName().toString().trim()+"."+typeName;
+    return cu.getPackage().getName().toString().trim() + "." + typeName;
   }
 
   public static String qnameOfTopTypeDecl(SimpleName name) {
@@ -57,7 +54,7 @@ public class AstFind {
     if (cu == null) {
       throw new IllegalArgumentException("The name is not in a CompilationUnit!");
     }
-    return cu.getPackage().getName().toString().trim()+"."+refName;
+    return cu.getPackage().getName().toString().trim() + "." + refName;
   }
 
   private static String typeName(Type type) {
@@ -92,6 +89,37 @@ public class AstFind {
           List<VariableDeclarationFragment> fragments = fd.fragments();
           return fragments.stream();
         });
+  }
+
+  public static List<TypeDeclaration> superClasses(TypeDeclaration td) {
+    List<TypeDeclaration> supers = new ArrayList<>();
+    String name = null;
+    while (true) {
+      if (td.getSuperclassType() != null) {
+        name = td.getSuperclassType().toString().trim();
+      }
+      if (name == null) {
+        break;
+      }
+      if (!name.contains(".")) {
+        ImportDeclaration imp = findImportByLastName(name, ((CompilationUnit) td.getParent()).imports());
+        assert imp != null;
+        name = imp.getName().getFullyQualifiedName();
+      }
+      supers.add((TypeDeclaration) Sources.getCuByQname(name).types().get(0));
+    }
+    return supers;
+  }
+
+  public static ImportDeclaration findImportByLastName(String name, List<ImportDeclaration> imports) {
+    for (ImportDeclaration imp : imports) {
+      String impFullName = imp.getName().getFullyQualifiedName();
+      String impLastName = impFullName.substring(impFullName.lastIndexOf('.') + 1);
+      if (impLastName.equals(name)) {
+        return imp;
+      }
+    }
+    return null;
   }
 
   private static Set<String> langTypes = new HashSet<>(Arrays.asList(

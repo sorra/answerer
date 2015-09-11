@@ -8,10 +8,10 @@ public class WireCase {
 
   public void run() {
     String email = "";
-    String password = "";
+    String pwd = "";
     UserLabel userLabel = new UserLabel();
     userLabel.name = "";
-    User user = wirer.autowire(userLabel, email, password);
+    User user = wirer.autowire(userLabel, email, "password=", pwd);
     System.out.println(user);
   }
 }

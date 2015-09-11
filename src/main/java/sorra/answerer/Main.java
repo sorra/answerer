@@ -13,6 +13,7 @@ import org.eclipse.jdt.core.dom.*;
 import sorra.answerer.ast.AstFind;
 import sorra.answerer.ast.FindUpper;
 import sorra.answerer.ast.Parser;
+import sorra.answerer.ast.VariableTypeResolver;
 import sorra.answerer.central.ObjectPropsCopier;
 import sorra.answerer.central.SingleVariableCopier;
 import sorra.answerer.central.Sources;
@@ -57,8 +58,8 @@ public class Main {
             public boolean visit(MethodInvocation mi) {
               if (mi.getExpression().toString().trim().equals("wirer")
                   && mi.getName().getIdentifier().equals("autowire")) {
-                System.out.println(mi);
                 Statement statement = FindUpper.statement(mi);
+                System.out.println(statement);
                 Type toTypeRef;
                 SimpleName toVarName;
                 if (statement instanceof ExpressionStatement) {
@@ -77,7 +78,7 @@ public class Main {
                 String toTypeQname = AstFind.qnameOfTypeRef(toTypeRef);
                 TypeDeclaration toType = (TypeDeclaration) Parser.parse(Sources.getSourceByQname(toTypeQname))
                     .types().get(0);
-                List<VariableDeclarationFragment> fields = AstFind.fields(toType);
+                List<VariableDeclarationFragment> toFields = AstFind.fields(toType);
 
                 List<Expression> args = mi.arguments();
 
@@ -88,8 +89,7 @@ public class Main {
                   if (cur instanceof StringLiteral) {
                     String strLiteral = ((StringLiteral) cur).getLiteralValue();
                     if (strLiteral.endsWith("=")) {
-                      idxVarAmend = i;
-                      varAmend = strLiteral;
+                      idxVarAmend = i; varAmend = strLiteral;
                       if (i == args.size()) throw new RuntimeException("Var amending cannot be the last arg");
                     }
                   } else {
@@ -98,19 +98,22 @@ public class Main {
                         throw new RuntimeException("Var must be a SimpleName when without amending");
                       }
                       SimpleName fromVarName = (SimpleName) cur;
-                      String fromTypeQname = varDeclQname(fromVarName);
+                      String fromTypeQname = new VariableTypeResolver(fromVarName).resolveTypeQname();
                       Optional<String> varLine = SingleVariableCopier.getLine(fromVarName.getIdentifier(), fromTypeQname,
-                          toVarName.getIdentifier(), fields);
+                          toVarName.getIdentifier(), toFields);
                       if (varLine.isPresent()) {
                         System.out.println(varLine.get());
                       } else {
                         List<String> propLines = ObjectPropsCopier.get(fromVarName.getIdentifier(), fromTypeQname,
-                            toVarName.getIdentifier(), toTypeQname, fields).getLines();
+                            toVarName.getIdentifier(), toTypeQname, toFields).getLines();
                         propLines.forEach(System.out::println);
                       }
                     } else {
                       if (idxVarAmend+1 != i) throw new RuntimeException("Var amending is not followed by var");
-                      ;
+                      String fromVarName = varAmend.substring(0, varAmend.length()-1);
+                      String varLine = SingleVariableCopier.getLine(fromVarName, cur, toVarName.getIdentifier(), toFields);
+                      System.out.println(varLine);
+                      idxVarAmend = -1; varAmend = null;
                     }
                   }
                 }
@@ -122,44 +125,37 @@ public class Main {
         }
       });
     }
-//    System.out.println(cu);
   }
 
-  static String varDeclQname(SimpleName var) {
-    MethodDeclaration methodScope = FindUpper.methodScope(var);
-    if (methodScope == null) {
-      return null;
-    }
-    List<String> typeNames = new ArrayList<>();
-    methodScope.getBody().accept(new ASTVisitor() {
-      @Override
-      public boolean visit(SimpleName sn) {
-        if (sn.getIdentifier().equals(var.getIdentifier())) {
-          ASTNode maybeFrag = sn.getParent();
-          if (maybeFrag instanceof VariableDeclarationFragment == false) {
-            return true;
-          }
-          ASTNode varDecl = maybeFrag.getParent();
-          List<StructuralPropertyDescriptor> props = varDecl.structuralPropertiesForType();
-          String varTypeName = props.stream().filter(p -> p.isChildProperty() && p.getId().equals("type"))
-              .findAny().map(p -> varDecl.getStructuralProperty(p).toString().trim())
-              .orElseThrow(RuntimeException::new);
-          typeNames.add(varTypeName);
-        }
-        return true;
-      }
-    });
-
-    if (typeNames.size() != 1) {
-      throw new RuntimeException("Var declaration count must be 1! actual: " + typeNames.size());
-    }
-    String typeName = typeNames.get(0);
-    return AstFind.qnameOfTypeRef(typeName, FindUpper.cu(methodScope));
-  }
-
-  static TypeDeclaration varDeclType(SimpleName var) {
-    String qname = varDeclQname(var);
-    if (qname == null) return null;
-    return (TypeDeclaration) Parser.parse(Sources.getSourceByQname(qname)).types().get(0);
-  }
+//  static String varDeclQname(SimpleName var) {
+//    MethodDeclaration methodScope = FindUpper.methodScope(var);
+//    if (methodScope == null) {
+//      return null;
+//    }
+//    List<String> typeNames = new ArrayList<>();
+//    methodScope.getBody().accept(new ASTVisitor() {
+//      @Override
+//      public boolean visit(SimpleName sn) {
+//        if (sn.getIdentifier().equals(var.getIdentifier())) {
+//          ASTNode maybeFrag = sn.getParent();
+//          if (maybeFrag instanceof VariableDeclarationFragment == false) {
+//            return true;
+//          }
+//          ASTNode varDecl = maybeFrag.getParent();
+//          List<StructuralPropertyDescriptor> props = varDecl.structuralPropertiesForType();
+//          String varTypeName = props.stream().filter(p -> p.isChildProperty() && p.getId().equals("type"))
+//              .findAny().map(p -> varDecl.getStructuralProperty(p).toString().trim())
+//              .orElseThrow(RuntimeException::new);
+//          typeNames.add(varTypeName);
+//        }
+//        return true;
+//      }
+//    });
+//
+//    if (typeNames.size() != 1) {
+//      throw new RuntimeException("Var declaration count must be 1! actual: " + typeNames.size());
+//    }
+//    String typeName = typeNames.get(0);
+//    return AstFind.qnameOfTypeRef(typeName, FindUpper.cu(methodScope));
+//  }
 }

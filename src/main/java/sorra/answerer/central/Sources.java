@@ -34,7 +34,7 @@ public class Sources {
   public static CompilationUnit getCuByQname(String qname) {
     String source = getSourceByQname(qname);
     if (source == null) {
-      return null;
+      throw new RuntimeException("No file for qname: " + qname);
     }
     return Parser.parse(source);
   }
