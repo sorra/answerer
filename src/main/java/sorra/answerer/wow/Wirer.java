@@ -1,5 +1,7 @@
 package sorra.answerer.wow;
 
 public interface Wirer {
-  <T> T autowire(Object... args);
+  static <T> T autowire(Object... args) {
+    return null;
+  }
 }

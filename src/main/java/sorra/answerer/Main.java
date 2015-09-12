@@ -1,18 +1,22 @@
 package sorra.answerer;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.function.Consumer;
 
 import org.eclipse.jdt.core.dom.*;
 import sorra.answerer.ast.AstFind;
 import sorra.answerer.ast.FindUpper;
 import sorra.answerer.ast.Parser;
 import sorra.answerer.ast.VariableTypeResolver;
+import sorra.answerer.central.ConfigReader;
 import sorra.answerer.central.ObjectPropsCopier;
 import sorra.answerer.central.SingleVariableCopier;
 import sorra.answerer.central.Sources;
@@ -30,21 +34,25 @@ public class Main {
     String rootDir = paths.getProperty("root.dir");
     entityPackagePath = paths.getProperty("entity.package").replace('.', '/') + "/";
 
-    FileWalker.walkAll(
-        FileWalker.findAll(new Path[]{Paths.get(rootDir)},
-            path -> {
-              String p = path.toString();
-              return p.endsWith(".java") && !p.equals("package-info.java");
-            }),
-        file -> {
-          try {
-            CompilationUnit cu = Parser.parse(FileUtil.readFile(file.getPath()));
-            process(cu);
-          } catch (Throwable e) {
-            System.err.println("Error at: " + file.getPath());
-            e.printStackTrace();
-          }
-        }, 1);
+    Collection<File> files = FileWalker.findAll(new Path[]{Paths.get(rootDir)},
+        path -> {
+          String p = path.toString();
+          return p.endsWith(".java") && !p.equals("package-info.java");
+        });
+    FileWalker.walkAll(files, fileAction(ConfigReader::read), 1);
+    FileWalker.walkAll(files, fileAction(Main::process), 1);
+  }
+
+  private static Consumer<File> fileAction(Consumer<CompilationUnit> cuConsumer) {
+    return file -> {
+      try {
+        CompilationUnit cu = Parser.parse(FileUtil.readFile(file.getPath()));
+        cuConsumer.accept(cu);
+      } catch (Throwable e) {
+        System.err.println("Error at: " + file.getPath());
+        e.printStackTrace();
+      }
+    };
   }
 
   static void process(CompilationUnit cu) {

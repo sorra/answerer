@@ -5,5 +5,9 @@ public class User {
   Long id;
   String email;
   String password;
-  String name;
+  String nickname;
+
+  {
+    Config.require(id, email, password, nickname);
+  }
 }
