@@ -122,6 +122,18 @@ public class AstFind {
     return null;
   }
 
+  public static boolean hasModifierKeyword(List modifiers, Modifier.ModifierKeyword keyword) {
+    for (Object mod : modifiers) {
+      if (mod instanceof Modifier) {
+        Modifier.ModifierKeyword keyword1 = ((Modifier) mod).getKeyword();
+        if (keyword.equals(keyword1)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   private static Set<String> langTypes = new HashSet<>(Arrays.asList(
       "AbstractMethodError", "AbstractStringBuilder", "Appendable", "ApplicationShutdownHooks",
       "ArithmeticException", "ArrayIndexOutOfBoundsException", "ArrayStoreException",

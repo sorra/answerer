@@ -82,13 +82,13 @@ public class VariableTypeResolver {
 
     if (typeLevel) {
       AbstractTypeDeclaration typeScope = FindUpper.abstractTypeScope(minScope);
-      applyInFields(typeScope);
+      applyInFields(typeScope, false);
 
       if(found()) {return;}
 
       for (TypeDeclaration superClass : superClasses(typeScope)) {
         if(found()) {return;}
-        applyInFields(superClass);
+        applyInFields(superClass, true);
       }
     }
   }
@@ -115,9 +115,13 @@ public class VariableTypeResolver {
     scope.accept(visitor);
   }
 
-  private void applyInFields(AbstractTypeDeclaration typeScope) {
+  private void applyInFields(AbstractTypeDeclaration typeScope, boolean isSuper) {
     for (Object bd : typeScope.bodyDeclarations()) {
       if (bd instanceof FieldDeclaration) {
+        if (isSuper && AstFind.hasModifierKeyword(((FieldDeclaration) bd).modifiers(),
+            Modifier.ModifierKeyword.PRIVATE_KEYWORD)) {//TODO handle package-private
+          continue;
+        }
         applyScope((ASTNode) bd);
       }
     }
