@@ -9,7 +9,6 @@ public class VariableTypeResolver {
   private final String symbol;
   private final ASTNode minScope;
 
-  private boolean methodLevel = true;
   private boolean typeLevel = true;
 
   /**
@@ -45,10 +44,6 @@ public class VariableTypeResolver {
     this.minScope = minScope;
   }
 
-  public VariableTypeResolver disableMethodLevel() {
-    methodLevel = false;
-    return this;
-  }
   public VariableTypeResolver disableTypeLevel() {
     typeLevel = false;
     return this;
@@ -81,9 +76,7 @@ public class VariableTypeResolver {
   private void resolve() {
     if(found()) {return;}
 
-    if (methodLevel) {
-      apply(FindUpper.methodScope(minScope));
-    }
+    applyLocal(minScope);
 
     if(found()) {return;}
 
@@ -104,7 +97,18 @@ public class VariableTypeResolver {
     return declName != null;
   }
 
-  private void apply(ASTNode scope) {
+  private void applyLocal(ASTNode node) {
+    if (node instanceof Block) {
+      node.accept(visitor);
+    }
+    while (!found()) {
+      node = FindUpper.scoper(node, Block.class);
+      if (node == null) break;
+      node.accept(visitor);
+    }
+  }
+
+  private void applyScope(ASTNode scope) {
     if (scope == null) {
       throw new NullPointerException();
     }
@@ -114,7 +118,7 @@ public class VariableTypeResolver {
   private void applyInFields(AbstractTypeDeclaration typeScope) {
     for (Object bd : typeScope.bodyDeclarations()) {
       if (bd instanceof FieldDeclaration) {
-        apply((ASTNode) bd);
+        applyScope((ASTNode) bd);
       }
     }
   }
