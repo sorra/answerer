@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.jdt.core.dom.*;
 import sorra.answerer.ast.AstFind;
+import sorra.answerer.util.PrimitiveUtil;
 import sorra.answerer.util.StringUtil;
 
 public class ObjectPropsCopier {
@@ -55,16 +56,12 @@ public class ObjectPropsCopier {
       }
       Type type = ((FieldDeclaration) vdFrag.getParent()).getType();
       String fieldTypeQname = AstFind.qnameOfTypeRef(type);
-      if (isPrimitive(fieldTypeQname)) {
+      if (PrimitiveUtil.isPrimitive(fieldTypeQname)) {
         lines.add(String.format("%s.%s = Unbox.value(%s.%s);", toVarName, fieldName, fromVarName, fromFieldName));
       } else {
         lines.add(String.format("%s.%s = %s.%s;", toVarName, fieldName, fromVarName, fromFieldName));
       }
     });
     return lines;
-  }
-
-  private static boolean isPrimitive(String fieldTypeQname) {
-    return StringUtil.isNotCapital(fieldTypeQname) && !fieldTypeQname.contains(".");
   }
 }

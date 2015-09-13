@@ -8,6 +8,7 @@ import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import sorra.answerer.ast.AstFind;
+import sorra.answerer.util.PrimitiveUtil;
 import sorra.answerer.util.StringUtil;
 
 public class SingleVariableCopier {
@@ -18,7 +19,7 @@ public class SingleVariableCopier {
       if (fieldName.equals(fromVarName)) {
         Type type = ((FieldDeclaration) vdFrag.getParent()).getType();
         String fieldTypeQname = AstFind.qnameOfTypeRef(type);
-        if (isPrimitive(fieldTypeQname)) {
+        if (PrimitiveUtil.isPrimitive(fieldTypeQname)) {
           line[0] = String.format("%s.%s = Unbox.value(%s);", toVarName, fromVarName, fromVarName);
         } else {
           line[0] = String.format("%s.%s = %s;", toVarName, fieldName, fieldName);
@@ -30,6 +31,7 @@ public class SingleVariableCopier {
     return Optional.ofNullable(line[0]);
   }
 
+  /** Amended */
   public static String getLine(String fromVarName, Expression fromExp, String toVarName, List<VariableDeclarationFragment> toFields) {
     String[] line = new String[1];
     String fromExpStr = fromExp.toString().trim();
@@ -38,7 +40,7 @@ public class SingleVariableCopier {
       if (fieldName.equals(fromVarName)) {
         Type type = ((FieldDeclaration) vdFrag.getParent()).getType();
         String fieldTypeQname = AstFind.qnameOfTypeRef(type);
-        if (isPrimitive(fieldTypeQname)) {
+        if (PrimitiveUtil.isPrimitive(fieldTypeQname)) {
           line[0] = String.format("%s.%s = Unbox.value(%s);", toVarName, fromVarName, fromExpStr);
         } else {
           line[0] = String.format("%s.%s = %s;", toVarName, fieldName, fromExpStr);
@@ -53,7 +55,5 @@ public class SingleVariableCopier {
     return line[0];
   }
 
-  private static boolean isPrimitive(String fieldTypeQname) {
-    return StringUtil.isNotCapital(fieldTypeQname) && !fieldTypeQname.contains(".");
-  }
+
 }

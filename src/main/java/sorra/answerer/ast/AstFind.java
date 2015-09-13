@@ -7,6 +7,7 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jdt.core.dom.*;
 import sorra.answerer.central.Sources;
+import sorra.answerer.util.PrimitiveUtil;
 import sorra.answerer.util.StringUtil;
 
 public class AstFind {
@@ -20,12 +21,11 @@ public class AstFind {
   }
 
   public static String qnameOfTypeRef(String typeName, CompilationUnit cu) {
-    if (StringUtil.isNotCapital(typeName)) {
-      // Should be qualified or primitive
+    if (typeName.contains(".") || PrimitiveUtil.isPrimitive(typeName)) {
       return typeName;
     }
     if (langTypes.contains(typeName)) {
-      return "java.lang." + typeName;
+      return typeName;
     }
     if (cu == null) {
       throw new IllegalArgumentException("The name is not in a CompilationUnit!");

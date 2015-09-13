@@ -5,23 +5,19 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Properties;
+import java.util.*;
 import java.util.function.Consumer;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jdt.core.dom.*;
 import sorra.answerer.ast.AstFind;
 import sorra.answerer.ast.FindUpper;
 import sorra.answerer.ast.Parser;
 import sorra.answerer.ast.VariableTypeResolver;
-import sorra.answerer.central.ConfigReader;
-import sorra.answerer.central.ObjectPropsCopier;
-import sorra.answerer.central.SingleVariableCopier;
-import sorra.answerer.central.Sources;
+import sorra.answerer.central.*;
 import sorra.answerer.io.FileUtil;
 import sorra.answerer.io.FileWalker;
+import sorra.answerer.util.PrimitiveUtil;
 
 public class Main {
   private static String entityPackagePath;
@@ -95,6 +91,8 @@ public class Main {
 
           List<Expression> args = mi.arguments();
 
+          List<String> params = new ArrayList<>();
+          List<String> lines = new ArrayList<>();
           int idxVarAmend = -1;
           String varAmend = null;
           for (int i = 0; i < args.size(); i++) {
@@ -112,25 +110,46 @@ public class Main {
                 }
                 SimpleName fromVarName = (SimpleName) cur;
                 String fromTypeQname = new VariableTypeResolver(fromVarName).resolveTypeQname();
+                params.add(fromTypeQname + " " + fromVarName);
+
                 Optional<String> varLine = SingleVariableCopier.getLine(fromVarName.getIdentifier(), fromTypeQname,
                     toVarName.getIdentifier(), toFields);
                 if (varLine.isPresent()) {
-                  System.out.println(varLine.get());
+                  lines.add(varLine.get());
                 } else {
                   List<String> propLines = ObjectPropsCopier.get(fromVarName.getIdentifier(), fromTypeQname,
                       toVarName.getIdentifier(), toTypeQname, toFields).getLines();
-                  propLines.forEach(System.out::println);
+                  propLines.forEach(lines::add);
                 }
               } else {
-                if (idxVarAmend+1 != i) throw new RuntimeException("Var amending is not followed by var");
+                if (idxVarAmend+1 != i) throw new RuntimeException("Var amending is not followed by var expression!");
                 String fromVarName = varAmend.substring(0, varAmend.length()-1);
+
+                Optional<VariableDeclarationFragment> matchField = toFields.stream()
+                    .filter(vdFrag -> vdFrag.getName().getIdentifier().equals(fromVarName)).findFirst();
+                if (!matchField.isPresent()) {
+                  throw new RuntimeException(String.format("Bad var amending '%s' for object '%s'", fromVarName, toVarName));
+                }
+                Type type = ((FieldDeclaration) matchField.get().getParent()).getType();
+                String fieldTypeQname = AstFind.qnameOfTypeRef(type);
+
+                //Box primitive params, to escape from NPE
+                params.add(PrimitiveUtil.boxType(fieldTypeQname) + " " + fromVarName);
+
                 String varLine = SingleVariableCopier.getLine(fromVarName, cur, toVarName.getIdentifier(), toFields);
-                System.out.println(varLine);
+                lines.add(varLine);
                 idxVarAmend = -1; varAmend = null;
               }
             }
           }
 
+          String paramsStr = String.join(", ", params);
+          System.out.println(String.format("public static %s autowire%s(%s) {",
+              toTypeQname, StringUtils.substringAfterLast(toTypeQname, "."), paramsStr));
+          System.out.println(String.format("  %s %s = new %s();", toTypeQname, toVarName, toTypeQname));
+          System.out.println("  " + String.join("\n  ", lines));
+          System.out.println(String.format("  return %s;", toVarName));
+          System.out.println("}");
         }
         return true;
       }
