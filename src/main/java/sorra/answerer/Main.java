@@ -16,6 +16,7 @@ import sorra.answerer.io.FileUtil;
 import sorra.answerer.io.FileWalker;
 import sorra.answerer.util.EventSeq;
 import sorra.answerer.util.PrimitiveUtil;
+import sorra.answerer.util.StringUtil;
 
 public class Main {
   private static String rootDir;
@@ -82,23 +83,36 @@ public class Main {
           Statement statement = FindUpper.statement(mi);
           System.out.println(statement);
           Type toTypeRef;
-          SimpleName toVarName;
-          if (statement instanceof ExpressionStatement) {
+          String toVarName;
+          if (statement instanceof ReturnStatement && mi == ((ReturnStatement) statement).getExpression()) {
+            MethodDeclaration md = FindUpper.methodScope(statement);
+            assert md != null;
+            toTypeRef = md.getReturnType2();
+            Type elemType;
+            if (toTypeRef instanceof ParameterizedType) {
+              elemType = (Type) ((ParameterizedType) toTypeRef).typeArguments().get(0);
+            } else if (toTypeRef instanceof ArrayType) {
+              elemType = ((ArrayType) toTypeRef).getElementType();
+            } else {
+              elemType = toTypeRef;
+            }
+            toVarName = StringUtils.uncapitalize(AstFind.snameOfTypeRef(elemType));
+          } else if (statement instanceof ExpressionStatement) {
             VariableDeclarationExpression decl = (VariableDeclarationExpression)
                 ((ExpressionStatement)statement).getExpression();
             toTypeRef = decl.getType();
-            toVarName = ((VariableDeclarationFragment)decl.fragments().get(0)).getName();
+            toVarName = ((VariableDeclarationFragment)decl.fragments().get(0)).getName().getIdentifier();
           } else if (statement instanceof VariableDeclarationStatement) {
             VariableDeclarationStatement vds = (VariableDeclarationStatement) statement;
             toTypeRef = vds.getType();
-            toVarName = ((VariableDeclarationFragment)vds.fragments().get(0)).getName();
+            toVarName = ((VariableDeclarationFragment)vds.fragments().get(0)).getName().getIdentifier();
           } else {
             throw new RuntimeException("Must declare a target variable. Statement: "+statement);
           }
 
           String toTypeQname = AstFind.qnameOfTypeRef(toTypeRef);
-          TypeDeclaration toType = (TypeDeclaration) Sources.getCuByQname(toTypeQname).types().get(0);
-          List<VariableDeclarationFragment> toFields = AstFind.fields(toType);
+          TypeDeclaration toTypeDecl = (TypeDeclaration) Sources.getCuByQname(toTypeQname).types().get(0);
+          List<VariableDeclarationFragment> toFields = AstFind.fields(toTypeDecl);
 
           List<Expression> args = mi.arguments();
 
@@ -123,18 +137,17 @@ public class Main {
               if (cur instanceof SimpleName == false) {
                 throw new RuntimeException("Var must be a SimpleName when without amending");
               }
-              SimpleName fromVarName = (SimpleName) cur;
-              String fromTypeQname = new VariableTypeResolver(fromVarName).resolveTypeQname();
+              SimpleName fromVarSimpleName = (SimpleName) cur;
+              String fromVarName = fromVarSimpleName.getIdentifier();
+              String fromTypeQname = new VariableTypeResolver(fromVarSimpleName).resolveTypeQname();
               params.add(fromTypeQname + " " + fromVarName);
 
-              Optional<String> varLine = SingleVariableCopier.getLine(fromVarName.getIdentifier(), fromTypeQname,
-                  toVarName.getIdentifier(), toFields);
+              Optional<String> varLine = SingleVariableCopier.getLine(fromVarName, fromTypeQname, toVarName, toFields);
               if (varLine.isPresent()) {
                 lines.add(varLine.get());
               } else {
-                List<String> propLines = ObjectPropsCopier.get(fromVarName.getIdentifier(), fromTypeQname,
-                    toVarName.getIdentifier(), toTypeQname, toFields).getLines();
-                propLines.forEach(lines::add);
+                ObjectPropsCopier.get(fromVarName, fromTypeQname, toVarName, toTypeQname, toFields)
+                    .getLines().forEach(lines::add);
               }
             } else {
               if (idxVarAmend+1 != i) throw new RuntimeException("Var amending is not followed by var expression!");
@@ -151,13 +164,13 @@ public class Main {
               //Box primitive params, to escape from NPE
               params.add(PrimitiveUtil.boxType(fieldTypeQname) + " " + fromVarName);
 
-              String varLine = SingleVariableCopier.getLine(fromVarName, cur, toVarName.getIdentifier(), toFields);
+              String varLine = SingleVariableCopier.getLine(fromVarName, cur, toVarName, toFields);
               lines.add(varLine);
               idxVarAmend = -1; varAmend = null;
             }
           }
 
-          String wireMethodName = "autowire"+StringUtils.substringAfterLast(toTypeQname, ".");
+          String wireMethodName = "autowire"+ StringUtil.simpleName(toTypeQname);
 
           SimpleName methName = mi.getName();
           eventSeq.add(new EventSeq.Insertion(wireMethodName, methName.getStartPosition()));

@@ -4,7 +4,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jdt.core.dom.*;
 import sorra.answerer.central.Sources;
 import sorra.answerer.util.PrimitiveUtil;
@@ -36,8 +35,8 @@ public class AstFind {
     for (ImportDeclaration imp : imports) {
       if (imp.isOnDemand()) continue;
       String impName = imp.getName().toString().trim();
-      if (StringUtils.substringAfterLast(impName, ".").equals(typeName)) {
-        matchPackage = StringUtils.substringBeforeLast(impName, ".");
+      if (StringUtil.simpleName(impName).equals(typeName)) {
+        matchPackage = StringUtil.qualifier(impName);
         break;
       }
     }
@@ -46,6 +45,11 @@ public class AstFind {
     }
     //TODO search * imports
     return cu.getPackage().getName().toString().trim() + "." + typeName;
+  }
+
+  public static String snameOfTypeRef(Type type) {
+    String s = typeName(type);
+    return StringUtil.simpleName(s);
   }
 
   public static String qnameOfTopTypeDecl(SimpleName name) {

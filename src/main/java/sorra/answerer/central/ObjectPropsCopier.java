@@ -38,7 +38,6 @@ public class ObjectPropsCopier {
     if (!fromQname.contains(".")) {
       throw new RuntimeException("Unsupported fromQname: " + fromQname);
     }
-    //TODO props mapping
     //TODO field types auto-mapping
     TypeDeclaration fromTd = (TypeDeclaration) Sources.getCuByQname(fromQname).types().get(0);
     Set<String> fromFieldNames = AstFind.fieldNameSet(fromTd);

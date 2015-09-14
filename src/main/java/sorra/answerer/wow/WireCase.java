@@ -5,12 +5,11 @@ package sorra.answerer.wow;
  */
 public class WireCase {
 
-  public void run() {
+  public User run() {
     String email = "";
     String pwd = "";
     UserLabel userLabel = new UserLabel();
     userLabel.name = "";
-    User user = Wirer.autowire(userLabel, email, "password=", pwd);
-    System.out.println(user);
+    return Wirer.autowire(userLabel, email, "password=", pwd);
   }
 }

@@ -9,7 +9,6 @@ import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import sorra.answerer.ast.AstFind;
 import sorra.answerer.util.PrimitiveUtil;
-import sorra.answerer.util.StringUtil;
 
 public class SingleVariableCopier {
   public static Optional<String> getLine(String fromVarName, String fromQname, String toVarName, List<VariableDeclarationFragment> toFields) {
