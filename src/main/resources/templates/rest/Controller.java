@@ -3,7 +3,7 @@ package $[enterprise].rest;
 import java.util.Collection;
 
 import com.avaje.ebean.Ebean;
-import $[enterprise].util.Wirer;
+import sorra.answerer.api.Wirer;
 import $[XxxPreviewPackage].dto.$[XxxPreview];
 import $[XxxViewPackage].dto.$[XxxView];
 import $[XxxPackage].$[Xxx];
