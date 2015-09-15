@@ -2,16 +2,20 @@
 
 Answerer, 即凯尔特神话的神剑Fragarach，能自动出鞘攻击，因此又名Answerer(应答之剑)。
 
-使用Answerer框架，你只需编写和维护业务逻辑代码，并提供一点配置信息，框架会自动为你生成其他所需的代码，构成可运行的程序。
+使用Answerer框架，你只需编写业务逻辑代码，并提供一点配置信息，框架会自动为你生成其他所需的代码，构成可运行的程序。
 
 不同于IDE的一次性代码生成，Answerer能持续陪伴你的项目。当你修改了代码，Answerer也自动修改代码，与你保持一致。不怕改需求，不怕重构！
 
 Answerer生成的是平铺直叙的代码，可读性、可调试性都高于流行框架中基于反射的代码。
 
+那么Answerer会降低码农的价值吗？不，码农节省了实现业务的时间，有更多时间研究技术了！
+
+##Quick Start
+
 目前Answerer采用Gradle构建工具，能自动生成基于Spring Boot + Ebean ORM的RESTful service (用户可自行加入网页部分)。未来考虑接入更多框架，用户可以挑选使用。
 
 <!--###如何运行:
-已有1个Demo项目，在example目录下运行./gradlew run (请确保8080端口可用)，会构建并启动web服务。-->
+已有1个Demo项目，在example目录下运行 ./gradlew run (请确保8080端口可用)，会构建并启动web服务。-->
 
 ###特色功能:
 - 自动组装数据
@@ -53,7 +57,7 @@ user = Wirer.autowire(uv, email, password);
 - IO对象的RAII
 
 ##近期目标
-- 可配置的REST
+- 支持getter, setter
 - AOP
 - 用户代码和生成代码分离，使code base更干净
 - 对TDD友好，业务逻辑直接可测试
