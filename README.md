@@ -48,7 +48,9 @@ user = Wirer.autowire(uv, email, password);
 - 自动注入一切数据和关系，无论它来自SQL、NoSQL甚至Micro service
 - 懒加载和批量加载
 - 提供配方(recipe)平台，第三方框架通过添加配方来接入
-- 分布式解决方案(例如微服务)
+- 类似微服务的分布式解决方案
+- 类似async-await的协程
+- IO对象的RAII
 
 ##近期目标
 - 可配置的REST
