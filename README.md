@@ -14,8 +14,10 @@ Answerer生成的是平铺直叙的代码，可读性、可调试性都高于流
 
 目前Answerer采用Gradle构建工具，能自动生成基于Spring Boot + Ebean ORM的RESTful service (用户可自行加入网页部分)。未来考虑接入更多框架，用户可以挑选使用。
 
-<!--###如何运行:
-已有1个Demo项目，在example目录下运行 ./gradlew run (请确保8080端口可用)，会构建并启动web服务。-->
+###如何运行:
+需要JDK 8。
+
+已有1个Demo项目，在example目录下运行 ./gradlew run (请确保8080端口可用)，会构建并启动web服务。
 
 ###特色功能:
 - 自动组装数据
@@ -47,7 +49,7 @@ user = Wirer.autowire(uv, email, password);
 ###原理:
 通过语法分析来理解用户代码，从而自动生成与之适配的代码。相关技术可参考我博客 http://segmentfault.com/blog/sorra
 
-##未来蓝图
+##远期目标
 
 - 自动注入一切数据和关系，无论它来自SQL、NoSQL甚至Micro service
 - 懒加载和批量加载
@@ -57,7 +59,9 @@ user = Wirer.autowire(uv, email, password);
 - IO对象的RAII
 
 ##近期目标
+- 嵌入构建步骤
 - 支持getter, setter
+- 可配置的Unbox
 - AOP
 - 用户代码和生成代码分离，使code base更干净
 - 对TDD友好，业务逻辑直接可测试

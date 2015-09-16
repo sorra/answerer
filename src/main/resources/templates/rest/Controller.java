@@ -11,22 +11,29 @@ import sorra.answerer.api.Wirer;
 @RequestMapping("/$[urlBase]")
 public class $[Xxx]Controller {
 
+  @RequestMapping("/all")
+  public Collection<$[Xxx]> all() {
+    return Ebean.find($[Xxx].class).findList();
+  }
+
   @RequestMapping("/new")
-  public void create(@RequestBody $[Entity] $[entity]) {
-    user.id = null;
+  public $[Xxx] create(@RequestBody $[Entity] $[entity]) {
+    $[entity].id = null;
     Ebean.save($[entity]);
+    return Wirer.autowire($[entity]);
   }
 
   @RequestMapping(value = "/{id}", method = RequestMethod.POST)
-  public void update(@PathVariable Long id, @RequestBody $[Entity] $[entity]) {
-    user.id = id;
-    Ebean.save(user);
+  public $[Xxx] update(@PathVariable Long id, @RequestBody $[Entity] $[entity]) {
+    $[entity].id = id;
+    Ebean.save($[entity]);
+    return Wirer.autowire($[entity]);
   }
 
   @RequestMapping(value = "/{id}", method = RequestMethod.GET)
   public $[Xxx] get(@PathVariable Long id) {
-    $[Entity] user = Ebean.find($[Entity].class, id);
-    return Wirer.autowire(user);
+    $[Entity] $[entity] = Ebean.find($[Entity].class, id);
+    return Wirer.autowire($[entity]);
   }
   $[queryField]
 }

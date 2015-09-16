@@ -59,8 +59,8 @@ public class DoWire {
         System.out.println(eventSeq.run());
       }
 
-      PackageDeclaration pkgDecl = ctx.cu.getPackage();
-      String pkg = pkgDecl.getName().getFullyQualifiedName();
+//      PackageDeclaration pkgDecl = ctx.cu.getPackage();
+//      String pkg = pkgDecl.getName().getFullyQualifiedName();
 //      FileWriter fileWriter = new FileWriter(new File(rootDir + "/" + pkg.replace('.', '/') + "/Wirer.java"));
     }
   }
