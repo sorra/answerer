@@ -7,6 +7,9 @@ $[importXxx]$[importEntity]
 import org.springframework.web.bind.annotation.*;
 import sorra.answerer.api.Wirer;
 
+/**
+ * $UserFunction
+ */
 @RestController
 @RequestMapping("/$[urlBase]")
 public class $[Xxx]Controller {
@@ -36,4 +39,5 @@ public class $[Xxx]Controller {
     return Wirer.autowire($[entity]);
   }
   $[queryField]
+
 }

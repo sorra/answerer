@@ -62,10 +62,14 @@ public class VariableTypeResolver {
 
   public String resolveTypeQname() {
     ASTNode maybeFrag = resolveDeclSimpleName().getParent();
-    if (maybeFrag instanceof VariableDeclarationFragment == false) {
-      throw new RuntimeException("");
+    ASTNode varDecl;
+    if (maybeFrag instanceof VariableDeclarationFragment) {
+      varDecl = maybeFrag.getParent();
+    } else if (maybeFrag instanceof SingleVariableDeclaration) {
+      varDecl = maybeFrag;
+    } else {
+      throw new RuntimeException(maybeFrag.toString());
     }
-    ASTNode varDecl = maybeFrag.getParent();
     List<StructuralPropertyDescriptor> props = varDecl.structuralPropertiesForType();
     String typeName = props.stream().filter(p -> p.isChildProperty() && p.getId().equals("type"))
         .findAny().map(p -> varDecl.getStructuralProperty(p).toString().trim())
@@ -102,9 +106,19 @@ public class VariableTypeResolver {
       node.accept(visitor);
     }
     while (!found()) {
-      node = FindUpper.scoper(node, Block.class);
-      if (node == null) break;
+      ASTNode outer = FindUpper.scoper(node, Block.class);
+      if (outer == null) break;
+      node = outer;
       node.accept(visitor);
+    }
+    if (!found()) {
+      MethodDeclaration md = FindUpper.methodScope(node);
+      if (md != null) {
+        List<SingleVariableDeclaration> parameters = md.parameters();
+        for (SingleVariableDeclaration parameter : parameters) {
+          parameter.accept(visitor);
+        }
+      }
     }
   }
 

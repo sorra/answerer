@@ -1,11 +1,14 @@
 package sorra.answerer.central;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jdt.core.dom.*;
 import sorra.answerer.ast.*;
@@ -18,17 +21,14 @@ import sorra.answerer.util.StringUtil;
 public class DoWire {
 
   public static void run(String javaFolder) {
-    Collection<File> files = FileWalker.findAll(new Path[]{Paths.get(javaFolder)},
+    Supplier<Collection<File>> findAll = () -> FileWalker.findAll(new Path[]{Paths.get(javaFolder)},
         path -> {
           String p = path.toString();
           return p.endsWith(".java") && !p.equals("package-info.java");
         });
-    FileWalker.walkAll(files, fileAction(ctx -> ConfigReader.read(ctx.cu)), 1);
-    FileWalker.walkAll(files, fileAction(ctx -> {
-      processUserFunction(ctx);
-      processEnableRest(ctx);
-    }), 1);
-
+    FileWalker.walkAll(findAll.get(), fileAction(ctx -> ConfigReader.read(ctx.cu)), 1);
+    FileWalker.walkAll(findAll.get(), fileAction(DoWire::processEnableRest), 1);
+    FileWalker.walkAll(findAll.get(), fileAction(DoWire::processUserFunction), 1);
   }
 
   private static Consumer<File> fileAction(Consumer<AstContext> consumer) {
@@ -49,23 +49,24 @@ public class DoWire {
     if (atd.getJavadoc() != null && atd.getJavadoc().toString().contains("$UserFunction")) {
       EventSeq eventSeq = new EventSeq(ctx.source);
 
+      List<AutowireResult> results = new ArrayList<>();
       atd.bodyDeclarations().stream().forEach(bodyDecl -> {
         if (bodyDecl instanceof MethodDeclaration) {
-          ((MethodDeclaration) bodyDecl).getBody().accept(autowireVisitor(ctx, eventSeq));
+          ((MethodDeclaration) bodyDecl).getBody().accept(autowireVisitor(ctx, eventSeq, results));
         }
       });
 
       if (ctx.modified) {
-        System.out.println(eventSeq.run());
+        try {
+          FileUtils.write(ctx.file, eventSeq.run(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+          throw new UncheckedIOException(e);
+        }
       }
-
-//      PackageDeclaration pkgDecl = ctx.cu.getPackage();
-//      String pkg = pkgDecl.getName().getFullyQualifiedName();
-//      FileWriter fileWriter = new FileWriter(new File(rootDir + "/" + pkg.replace('.', '/') + "/Wirer.java"));
     }
   }
 
-  private static ASTVisitor autowireVisitor(AstContext ctx, EventSeq eventSeq) {
+  private static ASTVisitor autowireVisitor(AstContext ctx, EventSeq eventSeq, List<AutowireResult> results) {
     return new ASTVisitor() {
       @Override
       public boolean visit(MethodInvocation mi) {
@@ -73,7 +74,6 @@ public class DoWire {
             && mi.getName().getIdentifier().equals("autowire")) {
           ctx.modified = true;
           Statement statement = FindUpper.statement(mi);
-          System.out.println(statement);
           Type toTypeRef;
           String toVarName;
           if (statement instanceof ReturnStatement && mi == ((ReturnStatement) statement).getExpression()) {
@@ -102,6 +102,7 @@ public class DoWire {
             throw new RuntimeException("Must declare a target variable. Statement: "+statement);
           }
 
+          toVarName = "_"+toVarName;
           String toTypeQname = AstFind.qnameOfTypeRef(toTypeRef);
           TypeDeclaration toTypeDecl = (TypeDeclaration) Sources.getCuByQname(toTypeQname).types().get(0);
           List<VariableDeclarationFragment> toFields = AstFind.fields(toTypeDecl);
@@ -109,6 +110,7 @@ public class DoWire {
           List<Expression> args = mi.arguments();
 
           List<Expression> removedArgs = new ArrayList<>();
+          List<String> paramTypes = new ArrayList<>();
           List<String> params = new ArrayList<>();
           List<String> lines = new ArrayList<>();
           int idxVarAmend = -1;
@@ -132,6 +134,7 @@ public class DoWire {
               SimpleName fromVarSimpleName = (SimpleName) cur;
               String fromVarName = fromVarSimpleName.getIdentifier();
               String fromTypeQname = new VariableTypeResolver(fromVarSimpleName).resolveTypeQname();
+              paramTypes.add(fromTypeQname);
               params.add(fromTypeQname + " " + fromVarName);
 
               Optional<String> varLine = SingleVariableCopier.getLine(fromVarName, fromTypeQname, toVarName, toFields);
@@ -154,7 +157,9 @@ public class DoWire {
               String fieldTypeQname = AstFind.qnameOfTypeRef(type);
 
               //Box primitive params, to escape from NPE
-              params.add(PrimitiveUtil.boxType(fieldTypeQname) + " " + fromVarName);
+              String boxType = PrimitiveUtil.boxType(fieldTypeQname);
+              paramTypes.add(boxType);
+              params.add(boxType + " " + fromVarName);
 
               String varLine = SingleVariableCopier.getLine(fromVarName, cur, toVarName, toFields);
               lines.add(varLine);
@@ -162,12 +167,31 @@ public class DoWire {
             }
           }
 
+          if (paramTypes.size() != params.size()) throw new RuntimeException();
           String wireMethodName = "autowire"+ StringUtil.simpleName(toTypeQname);
+          String methodSig = wireMethodName + " " + String.join(", ", paramTypes);
+          String methodFullName = wireMethodName + " " + String.join(", ", params);
+          boolean existsFullName = existsFullName(methodFullName);
+
+          if (!existsFullName && existsSig(methodSig)) {
+            String candidateMethodName, candidateMethodSig;
+            int i = 0;
+            do {
+              i++;
+              candidateMethodName = wireMethodName + i;
+              candidateMethodSig = candidateMethodName + " " + String.join(", ", paramTypes);
+            } while (existsSig(candidateMethodSig));
+            wireMethodName = candidateMethodName;
+            methodSig = candidateMethodSig;
+          }
+          results.add(new AutowireResult(wireMethodName, methodSig, methodFullName));
 
           SimpleName methName = mi.getName();
           eventSeq.add(new EventSeq.Insertion(wireMethodName, methName.getStartPosition()));
           eventSeq.add(new EventSeq.Deletion(
               methName.getStartPosition(), methName.getStartPosition() + methName.getLength()));
+          eventSeq.add(new EventSeq.Deletion(mi.getExpression().getStartPosition(),
+              mi.getExpression().getStartPosition()+mi.getExpression().getLength()+1));
           for (Expression rmArg : removedArgs) {
             int begin = rmArg.getStartPosition();
             int nextComma = ctx.source.indexOf(',', rmArg.getStartPosition() + rmArg.getLength());
@@ -176,19 +200,32 @@ public class DoWire {
             eventSeq.add(new EventSeq.Deletion(begin, end));
           }
 
-          PartWriter wireMethodWriter = new PartWriter();
-          wireMethodWriter.setIndent(1);
-          wireMethodWriter.writeLine(String.format("public static %s %s(%s) {",
-              toTypeQname, wireMethodName, String.join(", ", params)));
-          wireMethodWriter.setIndent(2);
-          wireMethodWriter.writeLine(String.format("%s %s = new %s();", toTypeQname, toVarName, toTypeQname));
-          lines.forEach(wireMethodWriter::writeLine);
-          wireMethodWriter.writeLine(String.format("return %s;", toVarName));
-          wireMethodWriter.setIndent(1);
-          wireMethodWriter.writeLine("}");
-          wireMethodWriter.getLines().forEach(System.out::println);
+          if (!existsFullName) {
+            PartWriter wireMethodWriter = new PartWriter();
+            wireMethodWriter.setIndent(1);
+            wireMethodWriter.writeLine(String.format("public static %s %s(%s) {",
+                toTypeQname, wireMethodName, String.join(", ", params)));
+            wireMethodWriter.setIndent(2);
+            wireMethodWriter.writeLine(String.format("%s %s = new %s();", toTypeQname, toVarName, toTypeQname));
+            lines.forEach(wireMethodWriter::writeLine);
+            wireMethodWriter.writeLine(String.format("return %s;", toVarName));
+            wireMethodWriter.setIndent(1);
+            wireMethodWriter.writeLine("}\n");
+            AbstractTypeDeclaration atd = FindUpper.abstractTypeScope(mi);
+            assert atd != null;
+            eventSeq.add(new EventSeq.Insertion(String.join("\n", wireMethodWriter.getLines()),
+                atd.getStartPosition() + atd.getLength() - 2));
+          }
         }
         return true;
+      }
+
+      private boolean existsFullName(String methodFullName) {
+        return results.stream().anyMatch(result -> result.methodFullName.equals(methodFullName));
+      }
+
+      private boolean existsSig(String methodSig) {
+        return results.stream().anyMatch(result -> result.methodSig.equals(methodSig));
       }
     };
   }
@@ -213,6 +250,18 @@ public class DoWire {
         throw new RuntimeException("Entity Qname not found for: " + xxxQname);
       }
       ProjectGenerator.newController(entityQname, xxxQname, StringUtils.uncapitalize(StringUtil.simpleName(xxxQname)));
+    }
+  }
+
+  static class AutowireResult {
+    final String methodName;
+    final String methodSig;
+    final String methodFullName;
+
+    public AutowireResult(String methodName, String methodSig, String methodFullName) {
+      this.methodName = methodName;
+      this.methodSig = methodSig;
+      this.methodFullName = methodFullName;
     }
   }
 }
