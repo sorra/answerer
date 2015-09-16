@@ -2,9 +2,13 @@ group 'sorra'
 version '0.1-SNAPSHOT'
 
 apply plugin: 'java'
+apply plugin: 'application'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
+mainClassName = "sorra.answerer.Main"
+
+applicationDefaultJvmArgs = ["-Dargs=$args"]
 
 repositories {
   mavenCentral()

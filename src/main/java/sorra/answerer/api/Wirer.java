@@ -1,4 +1,4 @@
-package sorra.answerer.wow;
+package sorra.answerer.api;
 
 public interface Wirer {
   static <T> T autowire(Object... args) {

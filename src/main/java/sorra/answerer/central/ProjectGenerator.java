@@ -52,40 +52,24 @@ public class ProjectGenerator {
     FileUtils.write(dest.toFile(), content, StandardCharsets.UTF_8);
   }
 
-  public static void newController(String entityQname, String... dtoQnames) {
+  public static void newController(String qnameEntity, String qnameXxx, String urlBase) {
     Map<String, String> map = createMap();
-    String entityPackage = StringUtil.qualifier(entityQname);
-    String entityName = StringUtil.simpleName(entityQname);
-    map.put("XxxPackage", entityPackage);
-    map.put("Xxx", entityName);
-    for (String dtoQn : dtoQnames) {
-      String dtoPackage = StringUtil.qualifier(dtoQn);
-      String dtoName = StringUtil.simpleName(dtoQn);
-      if (dtoName.equals(entityName+"View")) {
-        map.put("XxxViewPackage", dtoPackage);
-        map.put("XxxView", dtoName);
-      } else if (dtoName.equals(entityName+"Preview")) {
-        map.put("XxxPreviewPackage", dtoPackage);
-        map.put("XxxPreview", dtoName);
-      }
-    }
-
-    if (map.get("XxxView") == null) {
-      map.put("XxxViewPackage", entityPackage);
-      map.put("XxxView", entityName);
-    }
-    if (map.get("XxxPreview") == null) {
-      map.put("XxxPreviewPackage", entityPackage);
-      map.put("XxxPreview", entityName);
-    }
-    map.put("xxx", StringUtils.uncapitalize(map.get("Xxx")));
+    map.put("urlBase", urlBase);
+    String Entity = StringUtil.simpleName(qnameEntity);
+    String Xxx = StringUtil.simpleName(qnameXxx);
+    map.put("importXxx", "import "+qnameXxx+";\n");
+    map.put("importEntity", "import "+qnameEntity+";\n");
+    map.put("Xxx", Xxx);
+    map.put("xxx", StringUtils.uncapitalize(Xxx));
+    map.put("Entity", Entity);
+    map.put("entity", StringUtils.uncapitalize(Entity));
     map.put("queryField", "");
 
     CharSequence controller = TemplateEngine.render(
         new File(TMPL_FOLDER+"/rest/Controller.java"), map);
     try {
       Path ctrlerPath = Paths.get(projectFolder, "src/main/java", enterprise.replace('.', '/'), "rest",
-          entityName+"Controller.java");
+          Xxx+"Controller.java");
       FileUtils.write(ctrlerPath.toFile(), controller, StandardCharsets.UTF_8);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
@@ -101,11 +85,5 @@ public class ProjectGenerator {
     map.put("projectName", projectName);
     map.put("enterprise", enterprise);
     return map;
-  }
-
-  public static void main(String[] args) throws IOException {
-    init(new File(".").getCanonicalPath(), "example", "com.example");
-    create();
-    newController("com.example.entity.User", "com.example.dto.UserView");
   }
 }

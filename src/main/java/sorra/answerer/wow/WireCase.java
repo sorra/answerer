@@ -1,7 +1,9 @@
 package sorra.answerer.wow;
 
+import sorra.answerer.api.Wirer;
+
 /**
- * User Function
+ * $UserFunction
  */
 public class WireCase {
 

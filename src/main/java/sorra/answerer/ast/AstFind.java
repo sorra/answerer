@@ -20,10 +20,11 @@ public class AstFind {
   }
 
   public static String qnameOfTypeRef(String typeName, CompilationUnit cu) {
-    if (typeName.contains(".") || PrimitiveUtil.isPrimitive(typeName)) {
+    if (typeName.contains(".") && StringUtil.isNotCapital(typeName)) {
+      // Has qualifier and is not inner-class
       return typeName;
     }
-    if (langTypes.contains(typeName)) {
+    if (PrimitiveUtil.isPrimitive(typeName) || langTypes.contains(typeName)) {
       return typeName;
     }
     if (cu == null) {

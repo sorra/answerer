@@ -1,5 +1,7 @@
 package sorra.answerer.wow;
 
+import sorra.answerer.api.Config;
+
 public class User {
   @Id
   Long id;
