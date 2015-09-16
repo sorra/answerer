@@ -209,6 +209,9 @@ public class DoWire {
 
       String xxxQname = AstFind.qnameOfTopTypeDecl(atd.getName());
       String entityQname = isEntity ? xxxQname : Relations.findEntity(xxxQname);
+      if (entityQname == null) {
+        throw new RuntimeException("Entity Qname not found for: " + xxxQname);
+      }
       ProjectGenerator.newController(entityQname, xxxQname, StringUtils.uncapitalize(StringUtil.simpleName(xxxQname)));
     }
   }

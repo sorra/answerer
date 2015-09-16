@@ -10,7 +10,7 @@ public class Main {
     String theArgs = System.getProperty("args");
 
     String action, project, basePackage;
-    if (args != null) {
+    if (theArgs != null) {
       String[] thoseArgs = theArgs.split(",");
       action = thoseArgs[0];
       project = thoseArgs[1];

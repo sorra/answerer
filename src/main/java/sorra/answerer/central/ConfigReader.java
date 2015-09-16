@@ -36,7 +36,7 @@ public class ConfigReader {
           if (args.size() != 2) throw new RuntimeException("map() takes 2 arguments! actual=" + args.size());
           Pair<String, String> pair1 = qnameAndFieldName(args.get(0));
           Pair<String, String> pair2 = qnameAndFieldName(args.get(1));
-          if (pair1.getRight() == null && pair2.getRight() == null) {
+          if (pair1.getRight().isEmpty() && pair2.getRight().isEmpty()) {
             String qname1 = pair1.getLeft();
             String qname2 = pair2.getLeft();
             boolean isEntity1 = isEntity(Sources.getCuByQname(qname1));
