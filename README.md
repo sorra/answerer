@@ -19,7 +19,7 @@ Answerer还在开发中，尚未达到产品级别。
 - 2. 运行: 在example目录下运行 ./gradlew run (请确保8080端口可用)，会构建并启动web服务。
 - 3. 检验: 用curl请求新建1个数据 curl -l -H "Content-type: application/json" -X POST -d {} http://localhost:8080/user/new ，浏览器打开http://localhost:8080/user/all 可看到
 
-也可生成新的项目，在answerer目录下运行 ./gradlew run -Pargs=create,$projectName,$basePackage (带有$的项请填一个值)，仿照example写好entity类(DTO可选)，并生成REST。
+也可生成新的项目，在answerer目录下运行 ./gradlew run -Pargs=create,myproject,com.myproject，仿照example写好entity类(DTO可选)，并生成REST。
 
 ###特色功能:
 - 自动组装数据
