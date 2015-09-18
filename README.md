@@ -37,7 +37,11 @@ String email="a@a.com", password="1234", nickname="Fraga", avatar="", brief="";
 
 User user = Wirer.autowire(email, password, nickname, avatar, brief);
 UserView uv = Wirer.autowire(user);
-user = Wirer.autowire(uv, email, "password=", "abcd");// "password="能赋予"abcd"变量名
+
+// "password=" 能给表达式"abcd"命名
+user = Wirer.autowire(uv, email, "password=", "abcd");
+// Collection/List/Set也可以哦
+Collection<UserView> uvs = Wirer.autowire(Arrays.asList(user, user));
 ```
 注意到两个类的字段有微妙不同，而且生成REST服务需要知道entity和DTO的关系，简单配置一下就解决了(Anwerer会扫描项目里的配置):
 

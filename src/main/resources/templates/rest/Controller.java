@@ -16,7 +16,8 @@ public class $[Xxx]Controller {
 
   @RequestMapping("/all")
   public Collection<$[Xxx]> all() {
-    return Ebean.find($[Xxx].class).findList();
+    Collection<$[Entity]> $[entity]s = Ebean.find($[Entity].class).findList();
+    return Wirer.autowire($[entity]s);
   }
 
   @RequestMapping("/new")

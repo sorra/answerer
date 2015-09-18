@@ -70,8 +70,8 @@ public class DoWire {
     return new ASTVisitor() {
       @Override
       public boolean visit(MethodInvocation mi) {
-        if (mi.getExpression().toString().trim().equals("Wirer")
-            && mi.getName().getIdentifier().equals("autowire")) {
+        if (mi.getName().getIdentifier().equals("autowire")
+            && mi.getExpression() != null && mi.getExpression().toString().trim().equals("Wirer")) {
           ctx.modified = true;
           Statement statement = FindUpper.statement(mi);
           Type toTypeRef;
@@ -80,15 +80,7 @@ public class DoWire {
             MethodDeclaration md = FindUpper.methodScope(statement);
             assert md != null;
             toTypeRef = md.getReturnType2();
-            Type elemType;
-            if (toTypeRef instanceof ParameterizedType) {
-              elemType = (Type) ((ParameterizedType) toTypeRef).typeArguments().get(0);
-            } else if (toTypeRef instanceof ArrayType) {
-              elemType = ((ArrayType) toTypeRef).getElementType();
-            } else {
-              elemType = toTypeRef;
-            }
-            toVarName = StringUtils.uncapitalize(AstFind.snameOfTypeRef(elemType));
+            toVarName = StringUtils.uncapitalize(AstFind.snameOfTypeRef(getElementalType(toTypeRef)));
           } else if (statement instanceof ExpressionStatement) {
             VariableDeclarationExpression decl = (VariableDeclarationExpression)
                 ((ExpressionStatement)statement).getExpression();
@@ -102,17 +94,46 @@ public class DoWire {
             throw new RuntimeException("Must declare a target variable. Statement: "+statement);
           }
 
-          toVarName = "_"+toVarName;
-          String toTypeQname = AstFind.qnameOfTypeRef(toTypeRef);
-          TypeDeclaration toTypeDecl = (TypeDeclaration) Sources.getCuByQname(toTypeQname).types().get(0);
-          List<VariableDeclarationFragment> toFields = AstFind.fields(toTypeDecl);
+          String toCollTypeName = null;
+          if (toTypeRef.isParameterizedType()) {
+            ParameterizedType genericType = (ParameterizedType) toTypeRef;
+            String rawTypeName = StringUtil.simpleName(genericType.getType().toString().trim());
+            if (javaCollections.containsKey(rawTypeName)) {
+              toCollTypeName = rawTypeName;
+            }
+          }
 
-          List<Expression> args = mi.arguments();
+          toVarName = "_"+toVarName;
+          String toTypeQname = AstFind.qnameOfTypeRef(getElementalType(toTypeRef));
+          String returnVar = toCollTypeName==null ? toVarName : toVarName+"s";
 
           List<Expression> removedArgs = new ArrayList<>();
           List<String> paramTypes = new ArrayList<>();
           List<String> params = new ArrayList<>();
-          List<String> lines = new ArrayList<>();
+          PartWriter opsWriter = new PartWriter();
+
+          if (toCollTypeName != null) {
+            opsWriter.setIndent(2);
+            opsWriter.writeLine(String.format("%s<%s> %s = new %s();",
+                toCollTypeName, toTypeQname, returnVar, "java.util."+javaCollections.get(toCollTypeName)+"<>"));
+            SimpleName fromVarSimpleName = (SimpleName) mi.arguments().get(0);
+            String fromVarName = fromVarSimpleName.getIdentifier();
+            String fromTypeQname = new VariableTypeResolver(fromVarSimpleName).resolveTypeQname();
+            if (!fromTypeQname.contains("<")) {
+              throw new RuntimeException("autowire is in collection mode, requires collection argument!");
+            }
+            String elemQname = AstFind.qnameOfTypeRef(StringUtils.substringBetween(fromTypeQname, "<", ">"), ctx.cu);
+            opsWriter.writeLine(String.format("for (%s %s : %s) {",
+                elemQname, "each", fromVarName));
+            opsWriter.setIndent(3);
+          } else {
+            opsWriter.setIndent(2);
+          }
+          opsWriter.writeLine(String.format("%s %s = new %s();", toTypeQname, toVarName, toTypeQname));
+
+          TypeDeclaration toTypeDecl = (TypeDeclaration) Sources.getCuByQname(toTypeQname).types().get(0);
+          List<VariableDeclarationFragment> toFields = AstFind.fields(toTypeDecl);
+          List<Expression> args = mi.arguments();
           int idxVarAmend = -1;
           String varAmend = null;
           for (int i = 0; i < args.size(); i++) {
@@ -137,12 +158,18 @@ public class DoWire {
               paramTypes.add(fromTypeQname);
               params.add(fromTypeQname + " " + fromVarName);
 
-              Optional<String> varLine = SingleVariableCopier.getLine(fromVarName, fromTypeQname, toVarName, toFields);
-              if (varLine.isPresent()) {
-                lines.add(varLine.get());
+              if (toCollTypeName == null) {
+                Optional<String> varLine = SingleVariableCopier.getLine(fromVarName, fromTypeQname, toVarName, toFields);
+                if (varLine.isPresent()) {
+                  opsWriter.writeLine(varLine.get());
+                } else {
+                  ObjectPropsCopier.get(fromVarName, fromTypeQname, toVarName, toTypeQname, toFields)
+                      .getLines().forEach(opsWriter::writeLine);
+                }
               } else {
-                ObjectPropsCopier.get(fromVarName, fromTypeQname, toVarName, toTypeQname, toFields)
-                    .getLines().forEach(lines::add);
+                String elemQname = AstFind.qnameOfTypeRef(StringUtils.substringBetween(fromTypeQname, "<", ">"), ctx.cu);
+                ObjectPropsCopier.get("each", elemQname, toVarName, toTypeQname, toFields)
+                    .getLines().forEach(opsWriter::writeLine);
               }
             } else {
               if (idxVarAmend+1 != i) throw new RuntimeException("Var amending is not followed by var expression!");
@@ -162,62 +189,77 @@ public class DoWire {
               params.add(boxType + " " + fromVarName);
 
               String varLine = SingleVariableCopier.getLine(fromVarName, cur, toVarName, toFields);
-              lines.add(varLine);
+              opsWriter.writeLine(varLine);
               idxVarAmend = -1; varAmend = null;
             }
           }
 
-          if (paramTypes.size() != params.size()) throw new RuntimeException();
-          String wireMethodName = "autowire"+ StringUtil.simpleName(toTypeQname);
-          String methodSig = wireMethodName + " " + String.join(", ", paramTypes);
-          String methodFullName = wireMethodName + " " + String.join(", ", params);
-          boolean existsFullName = existsFullName(methodFullName);
-
-          if (!existsFullName && existsSig(methodSig)) {
-            String candidateMethodName, candidateMethodSig;
-            int i = 0;
-            do {
-              i++;
-              candidateMethodName = wireMethodName + i;
-              candidateMethodSig = candidateMethodName + " " + String.join(", ", paramTypes);
-            } while (existsSig(candidateMethodSig));
-            wireMethodName = candidateMethodName;
-            methodSig = candidateMethodSig;
-          }
-          results.add(new AutowireResult(wireMethodName, methodSig, methodFullName));
-
-          SimpleName methName = mi.getName();
-          eventSeq.add(new EventSeq.Insertion(wireMethodName, methName.getStartPosition()));
-          eventSeq.add(new EventSeq.Deletion(
-              methName.getStartPosition(), methName.getStartPosition() + methName.getLength()));
-          eventSeq.add(new EventSeq.Deletion(mi.getExpression().getStartPosition(),
-              mi.getExpression().getStartPosition()+mi.getExpression().getLength()+1));
-          for (Expression rmArg : removedArgs) {
-            int begin = rmArg.getStartPosition();
-            int nextComma = ctx.source.indexOf(',', rmArg.getStartPosition() + rmArg.getLength());
-            if (nextComma <= 0) throw new RuntimeException("Wrong comma position after var amending arg!");
-            int end = ctx.source.charAt(nextComma+1) == ' ' ? nextComma+2 : nextComma+1;
-            eventSeq.add(new EventSeq.Deletion(begin, end));
+          if (toCollTypeName != null) {
+            opsWriter.writeLine(String.format("%s.add(%s);", returnVar, toVarName));
+            opsWriter.setIndent(2);
+            opsWriter.writeLine("}");
           }
 
-          if (!existsFullName) {
-            PartWriter wireMethodWriter = new PartWriter();
-            wireMethodWriter.setIndent(1);
-            wireMethodWriter.writeLine(String.format("public static %s %s(%s) {",
-                toTypeQname, wireMethodName, String.join(", ", params)));
-            wireMethodWriter.setIndent(2);
-            wireMethodWriter.writeLine(String.format("%s %s = new %s();", toTypeQname, toVarName, toTypeQname));
-            lines.forEach(wireMethodWriter::writeLine);
-            wireMethodWriter.writeLine(String.format("return %s;", toVarName));
-            wireMethodWriter.setIndent(1);
-            wireMethodWriter.writeLine("}\n");
-            AbstractTypeDeclaration atd = FindUpper.abstractTypeScope(mi);
-            assert atd != null;
-            eventSeq.add(new EventSeq.Insertion(String.join("\n", wireMethodWriter.getLines()),
-                atd.getStartPosition() + atd.getLength() - 2));
-          }
+          String returnType = toCollTypeName==null ? toTypeQname : toCollTypeName+"<"+toTypeQname+">";
+          genAutowireMethod(mi, returnType, returnVar, removedArgs, paramTypes, params, opsWriter);
         }
         return true;
+      }
+
+      private void genAutowireMethod(MethodInvocation mi, String returnType, String returnVar,
+                                     List<Expression> removedArgs, List<String> paramTypes, List<String> params, PartWriter opsWriter) {
+        if (paramTypes.size() != params.size()) throw new RuntimeException();
+
+        String wireMethodName = "autowire"+ StringUtils.capitalize(StringUtils.removeStart(returnVar, "_"));
+        String methodSig = wireMethodName + " " + String.join(", ", paramTypes);
+        String methodFullName = wireMethodName + " " + String.join(", ", params);
+        boolean existsFullName = existsFullName(methodFullName);
+
+        // Deduplicate autowire methods
+        if (!existsFullName && existsSig(methodSig)) {
+          String candidateMethodName, candidateMethodSig;
+          int i = 0;
+          do {
+            i++;
+            candidateMethodName = wireMethodName + i;
+            candidateMethodSig = candidateMethodName + " " + String.join(", ", paramTypes);
+          } while (existsSig(candidateMethodSig));
+          wireMethodName = candidateMethodName;
+          methodSig = candidateMethodSig;
+        }
+        results.add(new AutowireResult(wireMethodName, methodSig, methodFullName));
+
+        // Modify the call place
+        SimpleName methName = mi.getName();
+        eventSeq.add(new EventSeq.Insertion(wireMethodName, methName.getStartPosition()));
+        eventSeq.add(new EventSeq.Deletion(
+            methName.getStartPosition(), methName.getStartPosition() + methName.getLength()));
+        eventSeq.add(new EventSeq.Deletion(mi.getExpression().getStartPosition(),
+            mi.getExpression().getStartPosition()+mi.getExpression().getLength()+1));
+        for (Expression rmArg : removedArgs) {
+          int begin = rmArg.getStartPosition();
+          int nextComma = ctx.source.indexOf(',', rmArg.getStartPosition() + rmArg.getLength());
+          if (nextComma <= 0) throw new RuntimeException("Wrong comma position after var amending arg!");
+          int end = ctx.source.charAt(nextComma+1) == ' ' ? nextComma+2 : nextComma+1;
+          eventSeq.add(new EventSeq.Deletion(begin, end));
+        }
+
+        if (!existsFullName) { // Create an autowire method
+          PartWriter wireMethodWriter = new PartWriter();
+          wireMethodWriter.setIndent(1);
+          wireMethodWriter.writeLine(String.format("public static %s %s(%s) {",
+              returnType, wireMethodName, String.join(", ", params)));
+          wireMethodWriter.setIndent(0);
+          opsWriter.getLines().forEach(wireMethodWriter::writeLine);
+          wireMethodWriter.setIndent(2);
+          wireMethodWriter.writeLine(String.format("return %s;", returnVar));
+          wireMethodWriter.setIndent(1);
+          wireMethodWriter.writeLine("}\n");
+          AbstractTypeDeclaration atd = FindUpper.abstractTypeScope(mi);
+          assert atd != null;
+          eventSeq.add(new EventSeq.Insertion(String.join("\n", wireMethodWriter.getLines()),
+              atd.getStartPosition() + atd.getLength() - 2));
+        }
       }
 
       private boolean existsFullName(String methodFullName) {
@@ -228,6 +270,16 @@ public class DoWire {
         return results.stream().anyMatch(result -> result.methodSig.equals(methodSig));
       }
     };
+  }
+
+  private static Type getElementalType(Type toTypeRef) {
+    if (toTypeRef instanceof ParameterizedType) {
+      return  (Type) ((ParameterizedType) toTypeRef).typeArguments().get(0);
+    } else if (toTypeRef instanceof ArrayType) {
+      throw new RuntimeException("Array is not supported by autowire");
+    } else {
+      return toTypeRef;
+    }
   }
 
   static void processEnableRest(AstContext ctx) {
@@ -263,5 +315,12 @@ public class DoWire {
       this.methodSig = methodSig;
       this.methodFullName = methodFullName;
     }
+  }
+
+  private static Map<String, String> javaCollections = new HashMap<>();
+  static {
+    javaCollections.put("Collection", "ArrayList");
+    javaCollections.put("List", "ArrayList");
+    javaCollections.put("Set", "HashSet");
   }
 }
