@@ -59,6 +59,7 @@ public class DoWire {
       if (ctx.modified) {
         try {
           FileUtils.write(ctx.file, eventSeq.run(), StandardCharsets.UTF_8);
+          System.out.println("* Modified file: " + ctx.file.getPath());
         } catch (IOException e) {
           throw new UncheckedIOException(e);
         }

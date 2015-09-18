@@ -43,13 +43,16 @@ public class ProjectGenerator {
 
   private static void exampleRenderAndWrite(String subPath) throws IOException {
     CharSequence buildGradle = TemplateEngine.render(new File("project-template", subPath), createMap());
-    FileUtils.write(new File(projectFolder, subPath), buildGradle, StandardCharsets.UTF_8);
+    File file = new File(projectFolder, subPath);
+    FileUtils.write(file, buildGradle, StandardCharsets.UTF_8);
+    System.out.println("* Created file: " + file.getPath());
   }
 
   private static void codeRenderAndWrite(String subPath) throws IOException {
     Path dest = Paths.get(projectFolder, "src/main/java/", enterprise.replace('.', '/'), subPath);
     CharSequence content = TemplateEngine.render(new File(TMPL_FOLDER, subPath), createMap());
     FileUtils.write(dest.toFile(), content, StandardCharsets.UTF_8);
+    System.out.println("* Created file: " + dest);
   }
 
   public static void newController(String qnameEntity, String qnameXxx, String urlBase) {
@@ -71,6 +74,7 @@ public class ProjectGenerator {
       Path ctrlerPath = Paths.get(projectFolder, "src/main/java", enterprise.replace('.', '/'), "rest",
           Xxx+"Controller.java");
       FileUtils.write(ctrlerPath.toFile(), controller, StandardCharsets.UTF_8);
+      System.out.println("* Created file: " + ctrlerPath);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
