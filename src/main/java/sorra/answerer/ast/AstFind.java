@@ -45,7 +45,11 @@ public class AstFind {
       return matchPackage + "." + typeName;
     }
     //TODO search * imports
-    return cu.getPackage().getName().toString().trim() + "." + typeName;
+    String asLocal = cu.getPackage().getName().toString().trim() + "." + typeName;
+    if (Sources.containsQname(asLocal)) {
+      return asLocal;
+    }
+    return typeName;
   }
 
   public static String snameOfTypeRef(Type type) {

@@ -38,4 +38,8 @@ public class Sources {
     }
     return Parser.parse(source);
   }
+
+  public static boolean containsQname(String qname) {
+    return qnamesVsFiles.containsKey(qname);
+  }
 }
