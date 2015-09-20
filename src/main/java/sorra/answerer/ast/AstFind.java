@@ -30,24 +30,25 @@ public class AstFind {
     if (cu == null) {
       throw new IllegalArgumentException("The name is not in a CompilationUnit!");
     }
-    List<ImportDeclaration> imports = cu.imports();
 
-    String matchPackage = null;
-    for (ImportDeclaration imp : imports) {
-      if (imp.isOnDemand()) continue;
-      String impName = imp.getName().toString().trim();
-      if (StringUtil.simpleName(impName).equals(typeName)) {
-        matchPackage = StringUtil.qualifier(impName);
-        break;
-      }
-    }
-    if (matchPackage != null) {
-      return matchPackage + "." + typeName;
-    }
-    //TODO search * imports
-    String asLocal = cu.getPackage().getName().toString().trim() + "." + typeName;
+    String asLocal = cu.getPackage().getName().getFullyQualifiedName() + "." + typeName;
     if (Sources.containsQname(asLocal)) {
       return asLocal;
+    }
+
+    List<ImportDeclaration> imports = cu.imports();
+    for (ImportDeclaration imp : imports) {
+      if (imp.isOnDemand()) {
+        String hit = imp.getName().getFullyQualifiedName() + "." + typeName;
+        if (Sources.containsQname(hit)) {
+          return hit;
+        }
+      } else {
+        String impName = imp.getName().getFullyQualifiedName();
+        if (StringUtil.simpleName(impName).equals(typeName)) {
+          return impName;
+        }
+      }
     }
     return typeName;
   }
