@@ -19,7 +19,7 @@ Answerer还在开发中，尚未达到产品级别。
 - 2. 运行: 在example目录下运行 `./gradlew run`(请确保8080端口可用)，会构建并启动web服务。
 - 3. 检验: 用curl请求新建1个数据`curl -l -H "Content-type: application/json" -X POST -d {} http://localhost:8080/user/new`，浏览器打开http://localhost:8080/user/all 可看到
 
-也可生成新的项目，在answerer目录下运行 ./gradlew run -Pargs=create,myproject,com.myproject，仿照example写好entity类(DTO可选)，并生成REST。
+也可生成新的项目，在answerer目录下运行`./gradlew run -Pargs=create,myproject,com.myproject`，仿照example写好entity类(DTO可选)，并生成REST。
 
 ###特色功能:
 - 自动组装数据
@@ -58,7 +58,7 @@ class MyConfig extends Config {
 }
 ```
 
-需要提供RESTful CRUD的数据类要在javadoc中加入`$EnableRest`字样。
+需要提供RESTful CRUD的数据类要在javadoc中加入`$EnableRest`字样，运行update可自动生成对应的Controller。目前每次update会重新生成Controller，去掉$EnableRest字样可停止重新生成(autowire不受影响)。
 
 ###原理:
 通过语法分析来理解用户代码，从而自动生成与之适配的代码。相关技术可参考我博客 http://segmentfault.com/blog/sorra
