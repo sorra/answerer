@@ -15,9 +15,9 @@ Answerer还在开发中，尚未达到产品级别。
 ###如何运行:
 需要JDK 8。已有1个Demo项目，已包含entity和DTO类。
 
-- 1. 生成REST: 在answerer目录下运行 ./gradlew run -Pargs=update,example,com.example
-- 2. 运行: 在example目录下运行 ./gradlew run (请确保8080端口可用)，会构建并启动web服务。
-- 3. 检验: 用curl请求新建1个数据 curl -l -H "Content-type: application/json" -X POST -d {} http://localhost:8080/user/new ，浏览器打开http://localhost:8080/user/all 可看到
+- 1. 生成REST: 在answerer目录下运行 `./gradlew run -Pargs=update,example,com.example`
+- 2. 运行: 在example目录下运行 `./gradlew run`(请确保8080端口可用)，会构建并启动web服务。
+- 3. 检验: 用curl请求新建1个数据`curl -l -H "Content-type: application/json" -X POST -d {} http://localhost:8080/user/new`，浏览器打开http://localhost:8080/user/all 可看到
 
 也可生成新的项目，在answerer目录下运行 ./gradlew run -Pargs=create,myproject,com.myproject，仿照example写好entity类(DTO可选)，并生成REST。
 
@@ -27,7 +27,7 @@ Answerer还在开发中，尚未达到产品级别。
 
 只需调用autowire方法注入任意变量，它们会被自动转换、组装到返回类型中(如果不合适，代码分析器会报告错误)。比Spring的注入还方便！静态检查更可靠！
 
-使用autowire的类要在javadoc中加入$UserFunction字样，然后它的代码就可以这么写了:
+使用autowire的类要在javadoc中加入`$UserFunction`字样，然后它的代码就可以这么写了:
 
 ```
 // User字段为id, email, password, nickname, avatar, brief
@@ -48,7 +48,7 @@ Collection<UserView> uvs = Wirer.autowire(Arrays.asList(user, user));
 ```
 // Java写配置类，对重构友好(未来可能支持YAML等格式)
 import sorra.answerer.api.Config;
-public class MyConfig extends Config {
+class MyConfig extends Config {
   User user; UserView uv;
   { // 解决字段名的差异
     map(user.nickname, uv.name);
@@ -58,7 +58,7 @@ public class MyConfig extends Config {
 }
 ```
 
-需要提供RESTful CRUD的数据类要在javadoc中加入$EnableRest字样。
+需要提供RESTful CRUD的数据类要在javadoc中加入`$EnableRest`字样。
 
 ###原理:
 通过语法分析来理解用户代码，从而自动生成与之适配的代码。相关技术可参考我博客 http://segmentfault.com/blog/sorra
