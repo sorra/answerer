@@ -60,7 +60,7 @@ public class VariableTypeResolver {
     return declName;
   }
 
-  public String resolveTypeQname() {
+  public Type resolveType() {
     ASTNode maybeFrag = resolveDeclSimpleName().getParent();
     ASTNode varDecl;
     if (maybeFrag instanceof VariableDeclarationFragment) {
@@ -71,10 +71,14 @@ public class VariableTypeResolver {
       throw new RuntimeException(maybeFrag.toString());
     }
     List<StructuralPropertyDescriptor> props = varDecl.structuralPropertiesForType();
-    String typeName = props.stream().filter(p -> p.isChildProperty() && p.getId().equals("type"))
-        .findAny().map(p -> varDecl.getStructuralProperty(p).toString().trim())
+    return props.stream().filter(p -> p.isChildProperty() && p.getId().equals("type"))
+        .findAny().map(p -> (Type) varDecl.getStructuralProperty(p))
         .orElseThrow(RuntimeException::new);
-    return AstFind.qnameOfTypeRef(typeName, FindUpper.cu(varDecl));
+  }
+
+  public String resolveTypeQname() {
+    Type type = resolveType();
+    return AstFind.qnameOfTypeRef(type.toString().trim(), FindUpper.cu(type));
   }
 
   private void resolve() {

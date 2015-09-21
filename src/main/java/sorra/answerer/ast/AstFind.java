@@ -132,6 +132,15 @@ public class AstFind {
     return null;
   }
 
+  public static ImportDeclaration findImport(String name, List<ImportDeclaration> imports) {
+    for (ImportDeclaration imp : imports) {
+      if (imp.getName().getFullyQualifiedName().equals(name)) {
+        return imp;
+      }
+    }
+    return null;
+  }
+
   public static boolean hasModifierKeyword(List modifiers, Modifier.ModifierKeyword keyword) {
     for (Object mod : modifiers) {
       if (mod instanceof Modifier) {

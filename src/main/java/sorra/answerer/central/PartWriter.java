@@ -22,11 +22,15 @@ public class PartWriter {
     lines.add(line);
   }
 
-  public void addImportName(String importName) {
+  public void addImport(String importName) {
     importNames.add(importName);
   }
 
   public List<String> getLines() {
     return lines;
+  }
+
+  public List<String> getImportNames() {
+    return importNames;
   }
 }
