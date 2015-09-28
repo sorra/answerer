@@ -4,6 +4,7 @@ import java.util.*;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.jdt.core.dom.*;
+import sorra.answerer.ast.AstCheck;
 import sorra.answerer.ast.AstFind;
 import sorra.answerer.util.PrimitiveUtil;
 import sorra.answerer.util.StringUtil;
@@ -35,7 +36,6 @@ public class ObjectPropsCopier {
     if (!fromQname.contains(".")) {
       throw new RuntimeException("Unsupported fromQname: " + fromQname);
     }
-    //TODO field types auto-mapping
     TypeDeclaration fromTd = (TypeDeclaration) Sources.getCuByQname(fromQname).types().get(0);
     Set<String> fromFieldNames = AstFind.fieldNameSet(fromTd);
     boolean isTypePairMapped = PropsMapper.isTypePairMapped(fromQname, toQname);
@@ -56,7 +56,9 @@ public class ObjectPropsCopier {
       if (PrimitiveUtil.isPrimitive(toFieldTypeQname)) {
         lines.add(format("%s.%s = Unbox.value(%s.%s);", toVarName, fieldName, fromVarName, fromFieldName));
       } else {
-        if (!toFieldTypeQname.equals(fromFieldTypeQname)) {
+        if (!toFieldTypeQname.equals(fromFieldTypeQname)
+            && (Sources.containsQname(fromFieldTypeQname) && Sources.containsQname(toFieldTypeQname)
+                && !AstCheck.isSubType(fromFieldTypeQname, toFieldTypeQname))) {
           AutowireMethod autowireMethod = wireMethods.stream()
               .filter(method -> method.retType.equals(toFieldTypeQname)
                   && method.paramTypes.size() == 1 && method.paramTypes.get(0).equals(fromFieldTypeQname))
