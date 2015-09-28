@@ -61,19 +61,21 @@ class MyConfig extends Config {
 
 也可生成新的项目，在answerer目录下运行`./gradlew run -Pargs=create,myproject,com.myproject`，仿照example写好entity类(DTO可选)，并生成REST。
 
-##远期目标
-
-- 自动注入一切数据和关系，无论它来自SQL、NoSQL甚至Micro service
-- 懒加载和批量加载
-- 提供配方(recipe)平台，第三方框架通过添加配方来接入
-- 类似微服务的分布式解决方案
-- 类似async-await的协程
-- IO对象的RAII
-
-##近期目标
-- 嵌入构建步骤
-- 支持getter, setter
-- 可配置的Unbox
+##即将到来
+- 支持getter, setter, constructor
+- 可配置的unboxing
 - AOP
+- 嵌入构建步骤
 - 用户代码和生成代码分离，使code base更干净
 - 对TDD友好，业务逻辑直接可测试
+
+##必然到来
+- 自动注入一切数据和关系，无论它来自SQL、NoSQL甚至Micro service
+- 懒加载和批量加载
+- 类似微服务的分布式解决方案
+
+##可能到来
+- 配方(recipes)体系，第三方框架通过添加配方来接入
+- 协程
+- 模式匹配
+- RAII
