@@ -1,17 +1,16 @@
 package sorra.answerer.central;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.jdt.core.dom.*;
 import sorra.answerer.ast.AstFind;
 import sorra.answerer.util.PrimitiveUtil;
+import sorra.answerer.util.StringUtil;
 
 import static java.lang.String.format;
 
 public class ObjectPropsCopier {
-//  private static Map<Pair<String, String>, ObjectPropsCopier> copiers = new ConcurrentHashMap<>();
 
   private List<String> lines;
 
@@ -20,22 +19,17 @@ public class ObjectPropsCopier {
   }
 
   public static ObjectPropsCopier get(String fromVarName, String fromQname, String toVarName, String toQname,
-                                      List<VariableDeclarationFragment> toFields, List<DoWire.AutowireMethod> wireMethods) {
-//    ObjectPropsCopier cached = copiers.get(Pair.of(fromQname, toQname));
-//    if (cached != null) {
-//      return cached;
-//    }
+                                      List<VariableDeclarationFragment> toFields, List<AutowireMethod> wireMethods) {
 
     ObjectPropsCopier copier = new ObjectPropsCopier();
     List<String> lines = codegen(fromVarName, fromQname, toVarName, toQname, toFields, wireMethods);
     copier.lines = Collections.unmodifiableList(lines);
-//    copiers.put(Pair.of(fromQname, toQname), copier);
     return copier;
   }
 
   //TODO pre-parse-toFieldTypeQnames
   private static List<String> codegen(String fromVarName, String fromQname, String toVarName, String toQname,
-                                      List<VariableDeclarationFragment> toFields, List<DoWire.AutowireMethod> wireMethods) {
+                                      List<VariableDeclarationFragment> toFields, List<AutowireMethod> wireMethods) {
     List<String> lines = new ArrayList<>();
 
     if (!fromQname.contains(".")) {
@@ -63,9 +57,42 @@ public class ObjectPropsCopier {
         lines.add(format("%s.%s = Unbox.value(%s.%s);", toVarName, fieldName, fromVarName, fromFieldName));
       } else {
         if (!toFieldTypeQname.equals(fromFieldTypeQname)) {
-          //TODO nested autowire
+          AutowireMethod autowireMethod = wireMethods.stream()
+              .filter(method -> method.retType.equals(toFieldTypeQname)
+                  && method.paramTypes.size() == 1 && method.paramTypes.get(0).equals(fromFieldTypeQname))
+              .findFirst().orElseGet(() -> {
+                String toFieldAsVar = StringUtil.asVarName(toFieldTypeQname);
+                String fromFieldAsVar = StringUtil.asVarName(fromFieldTypeQname);
+                // Generate autowire method before fullfiling its body, to avoid cyclic autowiring
+                PartWriter methodWriter = new PartWriter();
+                Pair<AutowireMethod, Boolean> autowirer = Autowire.genAutowireMethod(toFieldTypeQname, toFieldAsVar,
+                    Collections.singletonList(fromFieldTypeQname), Collections.singletonList(fromFieldTypeQname + " " + fromFieldAsVar),
+                    methodWriter, wireMethods);
+                if (!autowirer.getRight()) {
+                  return autowirer.getLeft();
+                }
+                methodWriter.setIndent(1);
+                methodWriter.writeLine(format("static %s %s(%s) {",
+                    toFieldTypeQname, autowirer.getLeft().name, String.join(", ", autowirer.getLeft().params)));
+                methodWriter.setIndent(2);
+                methodWriter.writeLine(format("if (%s == null) return null;\n", fromFieldAsVar));
+
+                methodWriter.writeLine(format("%s %s = new %s();", toFieldTypeQname, toFieldAsVar, toFieldTypeQname));
+                TypeDeclaration toTypeDecl = (TypeDeclaration) Sources.getCuByQname(toFieldTypeQname).types().get(0);
+                List<VariableDeclarationFragment> toFieldFields = AstFind.fields(toTypeDecl);
+                ObjectPropsCopier.get(fromFieldAsVar, fromFieldTypeQname, toFieldAsVar, toFieldTypeQname,
+                    toFieldFields, wireMethods)
+                    .getLines().forEach(methodWriter::writeLine);
+
+                methodWriter.writeLine(format("return %s;", toFieldAsVar));
+                methodWriter.setIndent(1);
+                methodWriter.writeLine("}\n");
+                return autowirer.getLeft();
+              });
+          lines.add(format("%s.%s = %s(%s.%s);", toVarName, fieldName, autowireMethod.name, fromVarName, fromFieldName));
+        } else {
+          lines.add(format("%s.%s = %s.%s;", toVarName, fieldName, fromVarName, fromFieldName));
         }
-        lines.add(format("%s.%s = %s.%s;", toVarName, fieldName, fromVarName, fromFieldName));
       }
     });
     return lines;

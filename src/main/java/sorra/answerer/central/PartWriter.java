@@ -13,6 +13,15 @@ public class PartWriter {
     this.indent = indent;
   }
 
+  public void indent() {
+    indent++;
+  }
+
+  public void unindent() {
+    indent--;
+    if (indent < 0) indent = 0;
+  }
+
   public void writeLine(String line) {
     if (indent > 0) {
       char[] spaces = new char[indent*2];

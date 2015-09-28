@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import org.eclipse.jdt.core.dom.ASTNode;
+
 public class EventSeq {
   private String source;
   private List<Event> events = new ArrayList<>();
@@ -43,6 +45,16 @@ public class EventSeq {
       this.begin = begin;
       this.end = end;
     }
+    public Deletion(ASTNode node) {
+      begin = node.getStartPosition();
+      end = node.getStartPosition() + node.getLength();
+    }
+    public Deletion(ASTNode node, Character andNextChar, CharSequence source) {
+      begin = node.getStartPosition();
+      end = node.getStartPosition() + node.getLength();
+      if (andNextChar == null || source.charAt(end) == andNextChar) end++;
+    }
+
     @Override
     public int begin() {
       return begin;

@@ -1,5 +1,7 @@
 package sorra.answerer.util;
 
+import org.apache.commons.lang3.StringUtils;
+
 public class StringUtil {
   public static boolean isCapital(String s) {
     if (s == null || s.isEmpty()) return false;
@@ -24,5 +26,9 @@ public class StringUtil {
       return "";
     }
     return name.substring(0, idxDot);
+  }
+
+  public static String asVarName(String qname) {
+    return StringUtils.uncapitalize(simpleName(qname));
   }
 }
