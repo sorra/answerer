@@ -1,4 +1,4 @@
-Answerer, 即凯尔特神话的神剑Fragarach，能自动出鞘攻击，因此又名Answerer(应答之剑)。
+Answerer, 即凯尔特神话的神剑Fragarach，能自动出鞘攻击，因此别名Answerer(应答之剑)。
 
 使用Answerer，你只需编写业务逻辑代码，并提供一点配置信息，Answerer会自动为你生成其他所需的代码，构成可运行的程序。生成的是平铺直叙的代码，可读性、可调试性都高于流行框架中基于反射的代码。
 
@@ -50,7 +50,7 @@ class MyConfig extends Config {
 需要提供RESTful CRUD的数据类要在javadoc中加入`$EnableRest`字样，运行update可自动生成对应的Controller。目前每次update会重新生成Controller，去掉$EnableRest字样可以停止重新生成(autowire不受影响)。
 
 ###原理:
-通过语法分析来理解用户代码，从而自动生成与之适配的代码。相关技术可参考我博客 http://segmentfault.com/blog/sorra
+通过语义分析来理解用户代码，从而自动生成与之适配的代码。相关技术可参考我博客 http://segmentfault.com/blog/sorra
 
 ###如何运行:
 需要JDK 8。已有1个Demo项目，已包含entity和DTO类。
@@ -63,7 +63,6 @@ class MyConfig extends Config {
 
 ##即将到来
 - 支持getter, setter, constructor
-- 可配置的unboxing
 - AOP
 - 嵌入构建步骤
 - 用户代码和生成代码分离，使code base更干净
