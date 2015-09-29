@@ -29,6 +29,7 @@ UserView uv = Wirer.autowire(user);
 
 // "password=" 能给表达式"abcd"命名
 user = Wirer.autowire(uv, email, "password=", "abcd");
+
 // Collection/List/Set也可以哦
 Collection<UserView> uvs = Wirer.autowire(Arrays.asList(user, user));
 ```
@@ -39,10 +40,9 @@ Collection<UserView> uvs = Wirer.autowire(Arrays.asList(user, user));
 import sorra.answerer.api.Config;
 class MyConfig extends Config {
   User user; UserView uv;
-  { // 解决字段名的差异
-    map(user.nickname, uv.name);
-    // 声明Entity和DTO是相关的
-    map(user, uv);
+  {
+    map(user.nickname, uv.name); // 解决字段名的差异
+    map(user, uv); // 声明Entity和DTO是相关的
   }
 }
 ```
@@ -62,8 +62,8 @@ class MyConfig extends Config {
 也可生成新的项目，在answerer目录下运行`./gradlew run -Pargs=create,myproject,com.myproject`，仿照example写好entity类(DTO可选)，并生成REST。
 
 ##即将到来
-- 支持getter, setter, constructor
 - AOP
+- 支持getter, setter, constructor
 - 嵌入构建步骤
 - 用户代码和生成代码分离，使code base更干净
 - 对TDD友好，业务逻辑直接可测试
@@ -76,5 +76,5 @@ class MyConfig extends Config {
 ##可能到来
 - 配方(recipes)体系，第三方框架通过添加配方来接入
 - 协程
-- 模式匹配
 - RAII
+- 模式匹配
