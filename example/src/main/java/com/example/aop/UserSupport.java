@@ -2,8 +2,6 @@ package com.example.aop;
 
 import java.io.IOException;
 
-import sorra.answerer.api.ImpossibleException;
-
 /**
  * $UserFunction
  */

@@ -103,8 +103,12 @@ public class AopWeaving {
         String maskedMethName = "$" + md.getName().getIdentifier();
         List<SingleVariableDeclaration> methParameters = md.parameters();
 
-        String $header = format("  private %s %s(%s) ",
-            md.getReturnType2(), maskedMethName, StringUtils.join(methParameters, ", "));
+        List<Type> throwns = md.thrownExceptionTypes();
+        List<String> throwsNames = throwns.stream().map(type -> type.toString().trim()).collect(toList());
+        String throwsDecl = throwns.isEmpty() ? "" : "throws " + StringUtils.join(throwsNames, ", ") + " ";
+
+        String $header = format("  private %s %s(%s) %s",
+            md.getReturnType2(), maskedMethName, StringUtils.join(methParameters, ", "), throwsDecl);
         String bodyCode = ctx.source.substring(md.getBody().getStartPosition(), md.getBody().getStartPosition() + md.getBody().getLength());
 
         AopInstance firstInst = aopInstances.get(0);
@@ -122,9 +126,7 @@ public class AopWeaving {
         bodyWriter.writeLine(invocBuilder.toString());
         bodyWriter.writeLine("} catch (Exception e) {");
         bodyWriter.writeLine("  if (e instanceof RuntimeException) throw (RuntimeException)e;");
-        List<Type> throwns = md.thrownExceptionTypes();
-        throwns.stream().map(type -> type.toString().trim())
-            .forEach(ex -> bodyWriter.writeLine(format("  if(e instanceof %s) throw (%s)e;", ex, ex)));
+        throwsNames.forEach(ex -> bodyWriter.writeLine(format("  if(e instanceof %s) throw (%s)e;", ex, ex)));
         bodyWriter.writeLine("  throw new sorra.answerer.api.ImpossibleException(e);");
         bodyWriter.writeLine("}");
         bodyWriter.setIndent(1);
