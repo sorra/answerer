@@ -49,6 +49,8 @@ class MyConfig extends Config {
 
 需要提供RESTful CRUD的数据类要在javadoc中加入`$EnableRest`字样，运行update可自动生成对应的Controller。目前每次update会重新生成Controller，去掉$EnableRest字样可以停止重新生成(autowire不受影响)。
 
+AOP功能介绍 [点这里](https://github.com/sorra/answerer/wiki/AOP)
+
 ###原理:
 通过语义分析来理解用户代码，从而自动生成与之适配的代码。相关技术可参考我博客 http://segmentfault.com/blog/sorra
 
@@ -62,7 +64,6 @@ class MyConfig extends Config {
 也可生成新的项目，在answerer目录下运行`./gradlew run -Pargs=create,myproject,com.myproject`，仿照example写好entity类(DTO可选)，并生成REST。
 
 ##即将到来
-- AOP
 - 支持getter, setter, constructor
 - 嵌入构建步骤
 - 用户代码和生成代码分离，使code base更干净

@@ -39,6 +39,10 @@ public class PartWriter {
     return lines;
   }
 
+  public String getWhole() {
+    return String.join("\n", getLines());
+  }
+
   public List<String> getImportNames() {
     return importNames;
   }

@@ -46,7 +46,7 @@ class Autowire {
       wirer.writeLine("}");
       try {
         FileUtils.write(new File(javaFolder + "/" + pkg.replace('.', '/') + "/Wirer.java"),
-            String.join("\n", wirer.getLines()), StandardCharsets.UTF_8);
+            wirer.getWhole(), StandardCharsets.UTF_8);
       } catch (IOException e) {
         throw new UncheckedIOException(e);
       }
@@ -55,7 +55,6 @@ class Autowire {
 
   static ASTVisitor visitor(AstContext ctx, EventSeq eventSeq, List<AutowireMethod> wireMethods) {
     return new ASTVisitor() {
-
 
       @Override
       public boolean visit(MethodInvocation mi) {

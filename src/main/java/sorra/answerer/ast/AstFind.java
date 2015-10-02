@@ -59,7 +59,7 @@ public class AstFind {
   }
 
   public static String qnameOfTopTypeDecl(SimpleName name) {
-    String refName = name.toString().trim();
+    String refName = name.getIdentifier();
     CompilationUnit cu = FindUpper.cu(name);
     if (cu == null) {
       throw new IllegalArgumentException("The name is not in a CompilationUnit!");

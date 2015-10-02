@@ -11,7 +11,6 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jdt.core.dom.*;
 import sorra.answerer.ast.*;
 import sorra.answerer.io.FileUtil;
@@ -19,7 +18,6 @@ import sorra.answerer.io.FileWalker;
 import sorra.answerer.util.EventSeq;
 import sorra.answerer.util.StringUtil;
 
-import static java.lang.String.format;
 
 public class DoWire {
   public static void run(String javaFolder) {
@@ -29,7 +27,10 @@ public class DoWire {
           return p.endsWith(".java") && !p.equals("package-info.java");
         });
 
-    FileWalker.walkAll(findAll.get(), fileAction(ctx -> ConfigReader.read(ctx.cu)), 1);
+    FileWalker.walkAll(findAll.get(), fileAction(ctx -> {
+      ConfigReader.read(ctx.cu);
+      AopWeaving.collect(ctx);
+    }), 1);
 
     FileWalker.walkAll(findAll.get(), fileAction(DoWire::processEnableRest), 1);
     FileWalker.walkAll(findAll.get(), fileAction(DoWire::processUserFunction), 1);
@@ -66,6 +67,7 @@ public class DoWire {
           ((MethodDeclaration) bodyDecl).getBody().accept(Autowire.visitor(ctx, eventSeq, wireMethods));
         }
       });
+      atd.accept(AopWeaving.weaver(ctx, eventSeq));
 
       if (ctx.modified) {
         try {
