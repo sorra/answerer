@@ -13,6 +13,7 @@ Answerer还在开发中，目前采用Gradle构建工具，能自动生成基于
 ###特色功能:
 - 自动组装数据
 - 编译时鸭子类型(compile-time duck typing)
+- 编译时AOP：程序行为一目了然，支持自定义注解和属性注入，爽
 
 只需调用autowire方法注入任意变量，它们会被自动适配、组装到返回类型中(如果不合适，代码分析器会报告错误)。比Spring的注入还方便！静态检查更可靠！
 
@@ -30,8 +31,9 @@ UserView uv = Wirer.autowire(user);
 // "password=" 能给表达式"abcd"命名
 user = Wirer.autowire(uv, email, "password=", "abcd");
 
-// Collection/List/Set也可以哦
-Collection<UserView> uvs = Wirer.autowire(Arrays.asList(user, user));
+// 集合也可以哦
+List<User> users = Arrays.asList(user, user);
+Collection<UserView> uvs = Wirer.autowire(users);
 ```
 注意到两个类的字段有微妙不同，而且生成REST服务需要知道entity和DTO的关系，简单配置一下就解决了(Anwerer会扫描项目里的配置):
 
