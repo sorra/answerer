@@ -22,14 +22,14 @@ public class $[Xxx]Controller {
 
   @RequestMapping("/new")
   public $[Xxx] create(@RequestBody $[Entity] $[entity]) {
-    $[entity].id = null;
+    $[entity].setId(null);
     Ebean.save($[entity]);
     return Wirer.autowire($[entity]);
   }
 
   @RequestMapping(value = "/{id}", method = RequestMethod.POST)
   public $[Xxx] update(@PathVariable Long id, @RequestBody $[Entity] $[entity]) {
-    $[entity].id = id;
+    $[entity].setId(id);
     Ebean.save($[entity]);
     return Wirer.autowire($[entity]);
   }

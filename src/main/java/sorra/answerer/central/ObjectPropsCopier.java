@@ -1,11 +1,14 @@
 package sorra.answerer.central;
 
 import java.util.*;
+import java.util.stream.Stream;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.jdt.core.dom.*;
 import sorra.answerer.ast.AstCheck;
 import sorra.answerer.ast.AstFind;
+import sorra.answerer.ast.FindUpper;
 import sorra.answerer.util.PrimitiveUtil;
 import sorra.answerer.util.StringUtil;
 
@@ -36,25 +39,44 @@ public class ObjectPropsCopier {
     if (!fromQname.contains(".")) {
       throw new RuntimeException("Unsupported fromQname: " + fromQname);
     }
+    if (toFields.isEmpty()) {
+      return Collections.emptyList();
+    }
+    TypeDeclaration toTd = FindUpper.typeScope(toFields.get(0));
     TypeDeclaration fromTd = (TypeDeclaration) Sources.getCuByQname(fromQname).types().get(0);
     Set<String> fromFieldNames = AstFind.fieldNameSet(fromTd);
     boolean isTypePairMapped = PropsMapper.isTypePairMapped(fromQname, toQname);
 
     toFields.forEach(vdFrag -> {
-      String fieldName = vdFrag.getName().getIdentifier();
+      String toFieldName = vdFrag.getName().getIdentifier();
+      String toProp;
+      if (hasMethodByName(toTd, setterName(toFieldName))) {
+        toProp = "."+setterName(toFieldName);
+      } else {
+        toProp = toFieldName;
+      }
+
       String fromFieldName = null;
       if (isTypePairMapped) {
-        fromFieldName = PropsMapper.findMappedProp(toQname, fieldName, fromQname);
+        fromFieldName = PropsMapper.findMappedProp(toQname, toFieldName, fromQname);
       }
       if (fromFieldName == null) {
-        if (fromFieldNames.contains(fieldName)) fromFieldName = fieldName;
+        if (fromFieldNames.contains(toFieldName)) fromFieldName = toFieldName;
         else return;
       }
+      String fromProp;
+      if (hasMethodByName(fromTd, getterName(fromFieldName))) {
+        fromProp = "."+getterName(fromFieldName);
+      } else {
+        fromProp = fromFieldName;
+      }
+
       String fromFieldTypeQname = AstFind.qnameOfTypeRef(findFieldTypeByName(fromTd, fromFieldName));
       Type toFieldType = ((FieldDeclaration) vdFrag.getParent()).getType();
       String toFieldTypeQname = AstFind.qnameOfTypeRef(toFieldType);
+
       if (PrimitiveUtil.isPrimitive(toFieldTypeQname)) {
-        lines.add(format("%s.%s = Unbox.value(%s.%s);", toVarName, fieldName, fromVarName, fromFieldName));
+        lines.add(new PropCopy(toVarName, toProp, fromVarName, fromProp, "Unbox.value").toString());
       } else {
         if (!toFieldTypeQname.equals(fromFieldTypeQname)
             && (Sources.containsQname(fromFieldTypeQname) && Sources.containsQname(toFieldTypeQname)
@@ -91,9 +113,9 @@ public class ObjectPropsCopier {
                 methodWriter.writeLine("}\n");
                 return autowirer.getLeft();
               });
-          lines.add(format("%s.%s = %s(%s.%s);", toVarName, fieldName, autowireMethod.name, fromVarName, fromFieldName));
+          lines.add(new PropCopy(toVarName, toProp, fromVarName, fromProp, autowireMethod.name).toString());
         } else {
-          lines.add(format("%s.%s = %s.%s;", toVarName, fieldName, fromVarName, fromFieldName));
+          lines.add(new PropCopy(toVarName, toProp, fromVarName, fromProp, null).toString());
         }
       }
     });
@@ -110,5 +132,44 @@ public class ObjectPropsCopier {
       }
     }
     throw new RuntimeException(format("Field %s is not found in class %s", name, td.getName().getIdentifier()));
+  }
+
+  private static String getterName(String fieldName) {
+    return "get" + StringUtils.capitalize(fieldName);
+  }
+  private static String setterName(String fieldName) {
+    return "set" + StringUtils.capitalize(fieldName);
+  }
+
+  private static boolean hasMethodByName(TypeDeclaration td, String name) {
+    return Stream.of(td.getMethods()).anyMatch(m -> m.getName().getIdentifier().equals(name));
+  }
+
+  private static class PropCopy {
+    String lcaller;
+    String lprop;
+    String rcaller;
+    String rprop;
+    String rconv;
+
+    public PropCopy(String lcaller, String lprop, String rcaller, String rprop, String rconv) {
+      this.lcaller = lcaller;
+      this.lprop = lprop;
+      this.rcaller = rcaller;
+      this.rprop = rprop;
+      this.rconv = rconv;
+    }
+
+    @Override
+    public String toString() {
+      String rexp;
+      if (rprop.startsWith(".")) rexp = rcaller+rprop+"()";
+      else rexp = rcaller+"."+rprop;
+
+      if (rconv != null) rexp = rconv+"("+rexp+")";
+
+      if (lprop.startsWith(".")) return format("%s%s(%s);", lcaller, lprop, rexp);
+      else return format("%s.%s = %s;", lcaller, lprop, rexp);
+    }
   }
 }
