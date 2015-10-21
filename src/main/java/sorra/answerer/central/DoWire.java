@@ -42,6 +42,9 @@ public class DoWire {
       try {
         String source = FileUtil.readFile(file.getPath());
         CompilationUnit cu = Parser.parse(source);
+        if (cu.types().isEmpty()) {
+          return;
+        }
         consumer.accept(new AstContext(file, source, cu));
       } catch (Throwable e) {
         System.err.println("Error at: " + file.getPath());
