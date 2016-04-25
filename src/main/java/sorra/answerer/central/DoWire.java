@@ -19,7 +19,7 @@ import sorra.answerer.util.StringUtil;
 
 
 public class DoWire {
-  public static void run(String projectDir, String javaSubdir, String basePackage) {
+  public static void run(String projectDir, String javaSubdir) {
     Supplier<Collection<File>> findAll = () -> FileWalker.findAll(new Path[]{Paths.get(projectDir)},
         path -> {
           String p = path.toString();

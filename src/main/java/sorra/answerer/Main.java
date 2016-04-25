@@ -1,33 +1,28 @@
 package sorra.answerer;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.util.Properties;
 
 import sorra.answerer.central.DoWire;
 import sorra.answerer.central.ProjectGenerator;
+import sorra.answerer.util.CommandProperties;
 
 public class Main {
   public static void main(String[] args) throws Exception {
-    String theArgs = System.getProperty("args");
-
-    String action, project, basePackage;
-    if (theArgs != null) {
-      String[] thoseArgs = theArgs.split(",");
-      action = thoseArgs[0];
-      project = thoseArgs[1];
-      basePackage = thoseArgs[2];
-    } else {
-      action = System.getProperty("action");
-      if (action == null) throw new IllegalArgumentException("action required");
-      project = System.getProperty("project");
-      if (project == null) throw new IllegalArgumentException("project required");
-      basePackage = System.getProperty("basePackage");
-      if (basePackage == null) throw new IllegalArgumentException("basePackage required");
+    if (args.length == 0) {
+      throw new IllegalArgumentException("Require a command");
     }
-    ProjectGenerator.init(new File(".").getCanonicalPath(), project, basePackage);
-    if (action.equals("create")) {
+    String command = args[0];
+    CommandProperties commandProperties = new CommandProperties("config.properties");
+    String projectName = commandProperties.getProperty("project.name");
+    String basePackage = commandProperties.getProperty("base.package");
+
+    ProjectGenerator.init(new File(".").getCanonicalPath(), projectName, basePackage);
+    if (command.equals("create")) {
       ProjectGenerator.create();
-    } else if (action.equals("update")) {
-      DoWire.run(new File(project + "").getCanonicalPath(), "src/main/java", basePackage);
+    } else if (command.equals("update")) {
+      DoWire.run(new File(projectName).getCanonicalPath(), "src/main/java");
     }
   }
 }
