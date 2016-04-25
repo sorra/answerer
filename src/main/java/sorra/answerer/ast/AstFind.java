@@ -85,8 +85,8 @@ public class AstFind {
     return type.toString().trim();
   }
 
-  public static List<VariableDeclarationFragment> fields(TypeDeclaration td) {
-    return fieldDeclFrags(td).collect(Collectors.toList());
+  public static List<VariableDeclarationFragment> fields(String qname) {
+    return fieldDeclFrags((TypeDeclaration) typeDecl(qname)).collect(Collectors.toList());
   }
 
   public static Set<String> fieldNameSet(TypeDeclaration td) {
@@ -152,6 +152,11 @@ public class AstFind {
     }
     return false;
   }
+
+  static AbstractTypeDeclaration typeDecl(String qname) {
+    return (AbstractTypeDeclaration) Sources.getCuByQname(qname).types().get(0);
+  }
+
 
   private static Set<String> langTypes = new HashSet<>(Arrays.asList(
       "AbstractMethodError", "AbstractStringBuilder", "Appendable", "ApplicationShutdownHooks",

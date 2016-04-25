@@ -27,7 +27,7 @@ public class Main {
     if (action.equals("create")) {
       ProjectGenerator.create();
     } else if (action.equals("update")) {
-      DoWire.run(new File(project + "/src/main/java").getCanonicalPath());
+      DoWire.run(new File(project + "").getCanonicalPath(), "src/main/java", basePackage);
     }
   }
 }

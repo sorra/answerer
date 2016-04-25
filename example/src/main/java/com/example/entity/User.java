@@ -1,8 +1,11 @@
 package com.example.entity;
 
+import java.util.ArrayList;
+import java.util.List;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.OneToMany;
 
 /**
  * $EnableRest
@@ -14,8 +17,10 @@ public class User {
   private String email;
   private String password;
   private String nickname;
-  public String avatar;
+  private String avatar;
   private String brief;
+  @OneToMany
+  private List<Post> posts = new ArrayList<>();
 
   public Long getId() {
     return id;
@@ -49,11 +54,27 @@ public class User {
     this.nickname = nickname;
   }
 
+  public String getAvatar() {
+    return avatar;
+  }
+
+  public void setAvatar(String avatar) {
+    this.avatar = avatar;
+  }
+
   public String getBrief() {
     return brief;
   }
 
   public void setBrief(String brief) {
     this.brief = brief;
+  }
+
+  public List<Post> getPosts() {
+    return posts;
+  }
+
+  public void setPosts(List<Post> posts) {
+    this.posts = posts;
   }
 }

@@ -61,7 +61,9 @@ public class VariableTypeResolver {
   }
 
   public Type resolveType() {
-    ASTNode maybeFrag = resolveDeclSimpleName().getParent();
+    SimpleName declSN = resolveDeclSimpleName();
+    if (declSN == null) throw new RuntimeException("Cannot resolve decl for: " + symbol);
+    ASTNode maybeFrag = declSN.getParent();
     ASTNode varDecl;
     if (maybeFrag instanceof VariableDeclarationFragment) {
       varDecl = maybeFrag.getParent();

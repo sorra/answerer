@@ -1,18 +1,17 @@
 package sorra.answerer.central;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import org.apache.commons.io.FileUtils;
 import org.eclipse.jdt.core.dom.*;
-import sorra.answerer.ast.*;
+import sorra.answerer.ast.AstContext;
+import sorra.answerer.ast.AstFind;
+import sorra.answerer.ast.Parser;
 import sorra.answerer.io.FileUtil;
 import sorra.answerer.io.FileWalker;
 import sorra.answerer.util.EventSeq;
@@ -20,8 +19,8 @@ import sorra.answerer.util.StringUtil;
 
 
 public class DoWire {
-  public static void run(String javaFolder) {
-    Supplier<Collection<File>> findAll = () -> FileWalker.findAll(new Path[]{Paths.get(javaFolder)},
+  public static void run(String projectDir, String javaSubdir, String basePackage) {
+    Supplier<Collection<File>> findAll = () -> FileWalker.findAll(new Path[]{Paths.get(projectDir)},
         path -> {
           String p = path.toString();
           return p.endsWith(".java") && !p.equals("package-info.java");
@@ -34,13 +33,14 @@ public class DoWire {
 
     FileWalker.walkAll(findAll.get(), fileAction(DoWire::processEnableRest), 1);
     FileWalker.walkAll(findAll.get(), fileAction(DoWire::processUserFunction), 1);
-    Autowire.writeWirers(javaFolder);
+
+    Autowire.writeWirers(projectDir + "/" + javaSubdir);
   }
 
   private static Consumer<File> fileAction(Consumer<AstContext> consumer) {
     return file -> {
       try {
-        String source = FileUtil.readFile(file.getPath());
+        String source = FileUtil.read(file);
         CompilationUnit cu = Parser.parse(source);
         if (cu.types().isEmpty()) {
           return;
@@ -73,12 +73,8 @@ public class DoWire {
       atd.accept(AopWeaving.weaver(ctx, eventSeq));
 
       if (ctx.modified) {
-        try {
-          FileUtils.write(ctx.file, eventSeq.run(), StandardCharsets.UTF_8);
-          System.out.println("* Modified file: " + ctx.file.getPath());
-        } catch (IOException e) {
-          throw new UncheckedIOException(e);
-        }
+        FileUtil.write(ctx.file, eventSeq.run());
+        System.out.println("* Modified file: " + ctx.file.getPath());
       }
     }
   }

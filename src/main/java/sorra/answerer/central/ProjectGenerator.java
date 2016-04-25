@@ -11,6 +11,7 @@ import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import sorra.answerer.io.FileUtil;
 import sorra.answerer.util.StringUtil;
 import sorra.answerer.util.TemplateEngine;
 
@@ -41,17 +42,17 @@ public class ProjectGenerator {
     }
   }
 
-  private static void exampleRenderAndWrite(String subPath) throws IOException {
+  private static void exampleRenderAndWrite(String subPath) {
     CharSequence buildGradle = TemplateEngine.render(new File("project-template", subPath), createMap());
     File file = new File(projectFolder, subPath);
-    FileUtils.write(file, buildGradle, StandardCharsets.UTF_8);
+    FileUtil.write(file, buildGradle);
     System.out.println("* Created file: " + file.getPath());
   }
 
-  private static void codeRenderAndWrite(String subPath) throws IOException {
+  private static void codeRenderAndWrite(String subPath) {
     Path dest = Paths.get(projectFolder, "src/main/java/", enterprise.replace('.', '/'), subPath);
     CharSequence content = TemplateEngine.render(new File(TMPL_FOLDER, subPath), createMap());
-    FileUtils.write(dest.toFile(), content, StandardCharsets.UTF_8);
+    FileUtil.write(dest.toFile(), content);
     System.out.println("* Created file: " + dest);
   }
 
@@ -70,14 +71,10 @@ public class ProjectGenerator {
 
     CharSequence controller = TemplateEngine.render(
         new File(TMPL_FOLDER+"/rest/Controller.java"), map);
-    try {
-      Path ctrlerPath = Paths.get(projectFolder, "src/main/java", enterprise.replace('.', '/'), "rest",
-          Xxx+"Controller.java");
-      FileUtils.write(ctrlerPath.toFile(), controller, StandardCharsets.UTF_8);
-      System.out.println("* Created file: " + ctrlerPath);
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
+    Path ctrlerPath = Paths.get(projectFolder, "src/main/java", enterprise.replace('.', '/'), "rest",
+        Xxx+"Controller.java");
+    FileUtil.write(ctrlerPath.toFile(), controller);
+    System.out.println("* Created file: " + ctrlerPath);
   }
 
   public static void update() {

@@ -1,6 +1,7 @@
 package sorra.answerer.central;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
@@ -9,10 +10,14 @@ import org.eclipse.jdt.core.dom.*;
 import sorra.answerer.ast.AstCheck;
 import sorra.answerer.ast.AstFind;
 import sorra.answerer.ast.FindUpper;
+import sorra.answerer.ast.VariableTypeResolver;
+import sorra.answerer.central.Autowire.WiringParams;
+import sorra.answerer.constant.JavaCollections;
 import sorra.answerer.util.PrimitiveUtil;
 import sorra.answerer.util.StringUtil;
 
 import static java.lang.String.format;
+import static java.util.Collections.singletonList;
 
 public class ObjectPropsCopier {
 
@@ -34,8 +39,6 @@ public class ObjectPropsCopier {
   //TODO pre-parse-toFieldTypeQnames
   private static List<String> codegen(String fromVarName, String fromQname, String toVarName, String toQname,
                                       List<VariableDeclarationFragment> toFields, List<AutowireMethod> wireMethods) {
-    List<String> lines = new ArrayList<>();
-
     if (!fromQname.contains(".")) {
       throw new RuntimeException("Unsupported fromQname: " + fromQname);
     }
@@ -47,50 +50,94 @@ public class ObjectPropsCopier {
     Set<String> fromFieldNames = AstFind.fieldNameSet(fromTd);
     boolean isTypePairMapped = PropsMapper.isTypePairMapped(fromQname, toQname);
 
+    List<String> lines = new ArrayList<>();
     toFields.forEach(vdFrag -> {
       String toFieldName = vdFrag.getName().getIdentifier();
       String toProp;
       if (hasMethodByName(toTd, setterName(toFieldName))) {
-        toProp = "."+setterName(toFieldName);
+        toProp = "." + setterName(toFieldName);
       } else {
         toProp = toFieldName;
       }
 
-      String fromFieldName = null;
+      String _fromFieldName = null;
       if (isTypePairMapped) {
-        fromFieldName = PropsMapper.findMappedProp(toQname, toFieldName, fromQname);
+        _fromFieldName = PropsMapper.findMappedProp(toQname, toFieldName, fromQname);
       }
-      if (fromFieldName == null) {
-        if (fromFieldNames.contains(toFieldName)) fromFieldName = toFieldName;
+      if (_fromFieldName == null) {
+        if (fromFieldNames.contains(toFieldName)) _fromFieldName = toFieldName;
         else return;
       }
+      String fromFieldName = _fromFieldName;
+
       String fromProp;
       if (hasMethodByName(fromTd, getterName(fromFieldName))) {
-        fromProp = "."+getterName(fromFieldName);
+        fromProp = "." + getterName(fromFieldName);
       } else {
         fromProp = fromFieldName;
       }
 
-      String fromFieldTypeQname = AstFind.qnameOfTypeRef(findFieldTypeByName(fromTd, fromFieldName));
-      Type toFieldType = ((FieldDeclaration) vdFrag.getParent()).getType();
-      String toFieldTypeQname = AstFind.qnameOfTypeRef(toFieldType);
+      String toFieldCollTypeQname = null;
+      Type _fromFieldType = findFieldTypeByName(fromTd, fromFieldName);
+      String fromFieldTypeQname = AstFind.qnameOfTypeRef(_fromFieldType);
+
+      Type _toFieldType = ((FieldDeclaration) vdFrag.getParent()).getType();
+      String toFieldTypeQname = AstFind.qnameOfTypeRef(_toFieldType);
+
+      if (_toFieldType.isParameterizedType()) {
+        // Detect collection mode
+        if (JavaCollections.containsIntf(toFieldTypeQname) && JavaCollections.containsIntf(fromFieldTypeQname)) {
+          toFieldCollTypeQname = toFieldTypeQname;
+        }
+      }
 
       if (PrimitiveUtil.isPrimitive(toFieldTypeQname)) {
         lines.add(new PropCopy(toVarName, toProp, fromVarName, fromProp, "Unbox.value").toString());
       } else {
-        if (!toFieldTypeQname.equals(fromFieldTypeQname)
-            && (Sources.containsQname(fromFieldTypeQname) && Sources.containsQname(toFieldTypeQname)
-                && !AstCheck.isSubType(fromFieldTypeQname, toFieldTypeQname))) {
+        if (toFieldCollTypeQname != null) { // Collection mode!
+          String fromEtalQname = extractElemTypeQname(_fromFieldType);
+          String toEtalQname = extractElemTypeQname(_toFieldType);
+          if (typesIncompatible(fromEtalQname, toEtalQname)) {
+            String toCollName = JavaCollections.collName(toFieldCollTypeQname);
+
+            AutowireMethod am = wireMethods.stream()
+                .filter(method -> method.retType.equals(toCollName))
+                .findFirst().orElseGet(() -> {
+                  WiringParams wp = new WiringParams(fromEtalQname, toEtalQname, toCollName, fromFieldName,
+                      singletonList(fromFieldTypeQname + "<" + fromEtalQname + "> " + fromFieldName),
+                      singletonList(fromFieldTypeQname + "<" + fromEtalQname + ">"));
+                  return Autowire.genAutowireMethod(wp, a -> {}, wireMethods, singletonList(
+                      writer -> ObjectPropsCopier.get("each", fromEtalQname, "$r", toEtalQname, AstFind.fields(toEtalQname), wireMethods)
+                          .getLines().forEach(writer::writeLine)));
+                });
+            lines.add(new PropCopy(toVarName, toProp, fromVarName, fromProp, am.name).toString());
+          } else {
+            if (!toFieldCollTypeQname.equals(fromFieldTypeQname)) {
+              String copyConstruction = "new java.util." + JavaCollections.get(toFieldCollTypeQname) + "<>";
+              lines.add(new PropCopy(toVarName, toProp, fromVarName, fromProp, copyConstruction).toString());
+            } else {
+              lines.add(new PropCopy(toVarName, toProp, fromVarName, fromProp, null).toString());
+            }
+          }
+        } else if (typesIncompatible(toFieldTypeQname, fromFieldTypeQname)) {
+          // toType<-fromType conversion via wirer
           AutowireMethod autowireMethod = wireMethods.stream()
               .filter(method -> method.retType.equals(toFieldTypeQname)
                   && method.paramTypes.size() == 1 && method.paramTypes.get(0).equals(fromFieldTypeQname))
               .findFirst().orElseGet(() -> {
                 String toFieldAsVar = StringUtil.asVarName(toFieldTypeQname);
                 String fromFieldAsVar = StringUtil.asVarName(fromFieldTypeQname);
+
+                Consumer<PartWriter> midWriting = methodWriter -> {
+                  methodWriter.writeLine(format("%s %s = new %s();", toFieldTypeQname, toFieldAsVar, toFieldTypeQname));
+                  ObjectPropsCopier.get(fromFieldAsVar, fromFieldTypeQname, toFieldAsVar, toFieldTypeQname,
+                      AstFind.fields(toFieldTypeQname), wireMethods)
+                      .getLines().forEach(methodWriter::writeLine);
+                };
                 // Generate autowire method before fullfiling its body, to avoid cyclic autowiring
                 PartWriter methodWriter = new PartWriter();
-                Pair<AutowireMethod, Boolean> autowirer = Autowire.genAutowireMethod(toFieldTypeQname, toFieldAsVar,
-                    Collections.singletonList(fromFieldTypeQname), Collections.singletonList(fromFieldTypeQname + " " + fromFieldAsVar),
+                Pair<AutowireMethod, Boolean> autowirer = Autowire.genAutowireMethodHeader(toFieldTypeQname, toFieldAsVar,
+                    singletonList(fromFieldTypeQname), singletonList(fromFieldTypeQname + " " + fromFieldAsVar),
                     methodWriter, wireMethods);
                 if (!autowirer.getRight()) {
                   return autowirer.getLeft();
@@ -101,12 +148,7 @@ public class ObjectPropsCopier {
                 methodWriter.setIndent(2);
                 methodWriter.writeLine(format("if (%s == null) return null;\n", fromFieldAsVar));
 
-                methodWriter.writeLine(format("%s %s = new %s();", toFieldTypeQname, toFieldAsVar, toFieldTypeQname));
-                TypeDeclaration toTypeDecl = (TypeDeclaration) Sources.getCuByQname(toFieldTypeQname).types().get(0);
-                List<VariableDeclarationFragment> toFieldFields = AstFind.fields(toTypeDecl);
-                ObjectPropsCopier.get(fromFieldAsVar, fromFieldTypeQname, toFieldAsVar, toFieldTypeQname,
-                    toFieldFields, wireMethods)
-                    .getLines().forEach(methodWriter::writeLine);
+                midWriting.accept(methodWriter);
 
                 methodWriter.writeLine(format("return %s;", toFieldAsVar));
                 methodWriter.setIndent(1);
@@ -115,11 +157,23 @@ public class ObjectPropsCopier {
               });
           lines.add(new PropCopy(toVarName, toProp, fromVarName, fromProp, autowireMethod.name).toString());
         } else {
+          // Direct assignment
           lines.add(new PropCopy(toVarName, toProp, fromVarName, fromProp, null).toString());
         }
       }
     });
     return lines;
+  }
+
+  private static String extractElemTypeQname(Type _toFieldType) {
+    Object toTArg = ((ParameterizedType) _toFieldType).typeArguments().get(0);
+    return AstFind.qnameOfTypeRef(toTArg.toString(), FindUpper.cu(_toFieldType));
+  }
+
+  private static boolean typesIncompatible(String leftType, String rightType) {
+    return !leftType.equals(rightType)
+        && (Sources.containsQname(rightType) && Sources.containsQname(leftType)
+        && !AstCheck.isSubType(rightType, leftType));
   }
 
   private static Type findFieldTypeByName(TypeDeclaration td, String name) {
@@ -150,7 +204,7 @@ public class ObjectPropsCopier {
     String lprop;
     String rcaller;
     String rprop;
-    String rconv;
+    String rconv; //conversion method
 
     public PropCopy(String lcaller, String lprop, String rcaller, String rprop, String rconv) {
       this.lcaller = lcaller;

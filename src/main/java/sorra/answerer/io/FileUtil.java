@@ -6,10 +6,20 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
+import org.apache.commons.io.FileUtils;
+
 public class FileUtil {
-  public static String readFile(String filePath) {
+  public static String read(File file) {
     try {
-      return new String(Files.readAllBytes(new File(filePath).toPath()), StandardCharsets.UTF_8);
+      return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  public static void write(File file, CharSequence data) {
+    try {
+      FileUtils.write(file, data, StandardCharsets.UTF_8);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }

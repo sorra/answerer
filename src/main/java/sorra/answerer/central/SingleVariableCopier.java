@@ -11,7 +11,7 @@ import sorra.answerer.ast.AstFind;
 import sorra.answerer.util.PrimitiveUtil;
 
 public class SingleVariableCopier {
-  public static Optional<String> getLine(String fromVarName, String fromQname, String toVarName, List<VariableDeclarationFragment> toFields) {
+  public static Optional<String> getLine(String fromVarName, String toVarName, List<VariableDeclarationFragment> toFields) {
     String[] line = new String[1];
     toFields.stream().anyMatch(vdFrag -> {
       String fieldName = vdFrag.getName().getIdentifier();

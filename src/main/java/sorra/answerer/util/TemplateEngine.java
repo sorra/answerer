@@ -7,7 +7,7 @@ import sorra.answerer.io.FileUtil;
 
 public class TemplateEngine {
   public static CharSequence render(File template, Map<String, ?> variables) {
-    String tmplStr = FileUtil.readFile(template.getPath());
+    String tmplStr = FileUtil.read(template);
     return SemiTemplate.transform(tmplStr,
         (tmpl, range) -> {
           int idxStart = tmpl.indexOf("$[", range.begin);

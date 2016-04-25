@@ -4,12 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.jdt.core.dom.*;
-import sorra.answerer.central.Sources;
 
 public class AstCheck {
   public static boolean isSubType(String subQname, String spQname) {
-    AbstractTypeDeclaration sub = typeDecl(subQname);
-    AbstractTypeDeclaration sp = typeDecl(spQname);
+    AbstractTypeDeclaration sub = AstFind.typeDecl(subQname);
+    AbstractTypeDeclaration sp = AstFind.typeDecl(spQname);
     List<String> supers = new ArrayList<>();
     findSupers(sub, supers);
     return supers.contains(AstFind.qnameOfTopTypeDecl(sp.getName()));
@@ -22,12 +21,12 @@ public class AstCheck {
       for (Type intf : intfs) {
         String qname = AstFind.qnameOfTypeRef(intf);
         list.add(qname);
-        findSupers(typeDecl(qname), list);
+        findSupers(AstFind.typeDecl(qname), list);
       }
       if (td.getSuperclassType() != null) {
         String qname = AstFind.qnameOfTypeRef(td.getSuperclassType());
         list.add(qname);
-        findSupers(typeDecl(qname), list);
+        findSupers(AstFind.typeDecl(qname), list);
       }
     } else if (atd instanceof EnumDeclaration) {
       EnumDeclaration ed = (EnumDeclaration) atd;
@@ -35,12 +34,9 @@ public class AstCheck {
       for (Type intf : intfs) {
         String qname = AstFind.qnameOfTypeRef(intf);
         list.add(qname);
-        findSupers(typeDecl(qname), list);
+        findSupers(AstFind.typeDecl(qname), list);
       }
     }
   }
 
-  static AbstractTypeDeclaration typeDecl(String qname) {
-    return (AbstractTypeDeclaration) Sources.getCuByQname(qname).types().get(0);
-  }
 }

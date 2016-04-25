@@ -8,6 +8,6 @@ public class MyConfig extends Config {
   User user; UserView userView;
   {
     map(user, userView);
-    map(user.nickname, userView.name);
+    map(user.getNickname(), userView.name);
   }
 }

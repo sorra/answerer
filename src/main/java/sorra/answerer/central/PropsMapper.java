@@ -3,6 +3,7 @@ package sorra.answerer.central;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class PropsMapper {
@@ -14,8 +15,10 @@ public class PropsMapper {
   }
 
   private static void directMapProp(String qname1, String prop1, String qname2, String prop2) {
+    prop1 = toPropNameIfGetter(prop1);
+    prop2 = toPropNameIfGetter(prop2);
     Map<String, String> propsMapping;
-    synchronized (propsMappings) {
+    synchronized (propsMappings) { // Pessimistic lock
       propsMapping = propsMappings.get(Pair.of(qname1, qname2));
       if (propsMapping == null) {
         propsMapping = new ConcurrentHashMap<>();
@@ -34,5 +37,14 @@ public class PropsMapper {
       return propsMapping.get(toProp);
     }
     return null;
+  }
+
+  private static String toPropNameIfGetter(String getter) {
+    if (getter.endsWith("()") && getter.startsWith("get") && getter.length() > 5) {
+      char firstCh = getter.charAt(3); // right after "get"
+      return Character.toLowerCase(firstCh) + getter.substring(4, getter.length() - 2);
+    } else {
+      return getter;
+    }
   }
 }

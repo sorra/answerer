@@ -1,5 +1,7 @@
 package com.example.dto;
 
+import java.util.List;
+
 /**
  * $EnableRest
  */
@@ -8,6 +10,7 @@ public class UserView {
   public String name;
   public String avatar;
   public String brief;
+  public List<PostView> posts;
 
   public Long getId() {
     return id;
