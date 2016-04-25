@@ -1,21 +1,19 @@
 Answerer, 即凯尔特神话的神剑Fragarach，能自动出鞘攻击，因此别名Answerer(应答之剑)。
 
-使用Answerer，你只需编写业务逻辑代码，并提供一点配置信息，Answerer会自动为你生成其他所需的代码，构成可运行的程序。生成的是平铺直叙的代码，可读性、可调试性都高于流行框架中基于反射的代码。
+Answerer只是个工具，不会引入依赖，你可以随时抛开它。使用Answerer，你只需编写业务逻辑代码，并提供一点配置信息，Answerer会自动为你生成其他所需的代码，构成可运行的程序。生成的是平铺直叙的代码，可读性、可调试性都高于流行框架中基于反射的代码。
 
 不同于IDE的一次性代码生成，Answerer能持续陪伴你的项目。当你修改了代码，Answerer也自动修改代码，与你保持一致。不怕改需求，不怕重构！
 
 那么Answerer会降低码农的价值吗？不，码农节省了实现业务的时间，有更多时间研究技术了！
 
-##Quick Start
-
 Answerer还在开发中，目前采用Gradle构建工具，能自动生成基于Spring Boot + Ebean ORM的RESTful service (用户可自行加入网页部分)。未来打算接入更多框架，任用户挑选使用。
 
 ###特色功能:
-- 自动组装数据
+- 自动装配数据
 - 编译时鸭子类型(compile-time duck typing)
 - 编译时AOP：程序行为一目了然，支持自定义注解和属性注入，爽
 
-只需调用autowire方法注入任意变量，它们会被自动适配、组装到返回类型中(如果不合适，代码分析器会报告错误)。比Spring的注入还方便！静态检查更可靠！
+只需调用autowire方法注入任意变量，它们会被自动装配到返回类型中(如果不合适，代码分析器会报告错误)。比Spring的注入还方便！静态检查更可靠！
 
 使用autowire的类要在javadoc中加入`$UserFunction`字样，然后它的代码就可以这么写了:
 
@@ -53,22 +51,25 @@ class MyConfig extends Config {
 
 AOP功能介绍 [点这里](https://github.com/sorra/answerer/wiki/AOP)
 
-###原理:
-通过语义分析来理解用户代码，从而自动生成与之适配的代码。相关技术可参考我博客 http://segmentfault.com/blog/sorra
-
-###如何运行:
+###Quick start:
 需要JDK 8。已有1个Demo项目，已包含entity和DTO类。
 
-- 1. 生成REST: 在answerer目录下运行 `./gradlew run -Pargs=update,example,com.example`
+- 0. 构建: `./gradlew shadowJar`，jar生成在build/libs/answerer-0.2-all.jar, 根目录下config.properties含有配置参数
+- 1. 生成REST服务: 在answerer目录下运行 `java -jar build/libs/answerer-0.2-all.jar update`
 - 2. 运行: 在example目录下运行 `./gradlew run`(请确保8080端口可用)，会构建并启动web服务。
 - 3. 检验: 用curl请求新建1个数据`curl -l -H "Content-type: application/json" -X POST -d {} http://localhost:8080/user/new`，浏览器打开http://localhost:8080/user/all 可看到
 
-也可生成新的项目，在answerer目录下运行`./gradlew run -Pargs=create,myproject,com.myproject`，仿照example写好entity类(DTO可选)，并生成REST。
+也可生成新的项目，在answerer目录下运行`java -jar build/libs/answerer-0.2-all.jar create`，仿照example写好entity类(DTO可选)，并生成REST。
+
+###用法解释
+构建后生成了answerer的可执行jar，以后就在你的项目下执行这个jar。用`java -jar`命令执行jar时，尾部可携带参数`create`或`update`。
+在你的项目下创建一个config.properties，内容仿照answerer提供的样本。命令中加上-D参数，如`java -jar -Dkey=value build/libs/answerer-0.2-all.jar update`，可覆盖config.properties的配置。
+
+###工作原理:
+通过语义分析来理解用户代码，从而自动生成与之适配的代码。相关技术可参考我博客 http://segmentfault.com/blog/sorra
 
 ##即将到来
 - 支持getter, setter, constructor
-- 嵌入构建步骤
-- 用户代码和生成代码分离，使code base更干净
 - 对TDD友好，业务逻辑直接可测试
 
 ##必然到来
@@ -78,6 +79,6 @@ AOP功能介绍 [点这里](https://github.com/sorra/answerer/wiki/AOP)
 
 ##可能到来
 - 配方(recipes)体系，第三方框架通过添加配方来接入
+- SQL DSL
 - 协程
 - RAII
-- 模式匹配
