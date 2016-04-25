@@ -1,22 +1,30 @@
-group 'sorra'
-version '0.1-SNAPSHOT'
-
-apply plugin: 'java'
-apply plugin: 'application'
-
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-mainClassName = "sorra.answerer.Main"
-
-applicationDefaultJvmArgs = ["-Dargs=$args"]
-
-repositories {
-  mavenCentral()
+buildscript {
+  repositories {
+    jcenter()
+  }
 }
 
-dependencies {
-  compile fileTree(dir: 'lib', include: '*.jar')
-  compile 'org.apache.commons:commons-lang3:3.4'
-  compile 'commons-io:commons-io:2.4'
-  testCompile group: 'junit', name: 'junit', version: '4.11'
+plugins {
+  id 'java'
+  id 'com.github.johnrengelman.shadow' version '1.2.3'
+}
+
+configure(allprojects) { project ->
+  repositories {
+    mavenCentral()
+  }
+  dependencies {
+    compile fileTree(dir: 'lib', include: '*.jar')
+    compile 'org.apache.commons:commons-lang3:3.4'
+    compile 'commons-io:commons-io:2.4'
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+  }
+}
+
+group 'sorra'
+version '0.2'
+shadowJar {
+  manifest {
+    attributes 'Main-Class': 'sorra.answerer.Main'
+  }
 }
