@@ -62,8 +62,11 @@ AOP功能介绍 [点这里](https://github.com/sorra/answerer/wiki/AOP)
 也可生成新的项目，在answerer目录下运行`java -jar build/libs/answerer-0.2-all.jar create`，仿照example写好entity类(DTO可选)，并生成REST。
 
 ###用法解释
-构建后生成了answerer的可执行jar，以后就在你的项目下执行这个jar。用`java -jar`命令执行jar时，尾部可携带参数`create`或`update`。
-在你的项目下创建一个config.properties，内容仿照answerer提供的样本。命令中加上-D参数，如`java -jar -Dkey=value build/libs/answerer-0.2-all.jar update`，可覆盖config.properties的配置。
+构建后生成了answerer的可执行jar，可以起个短点的名字(如answerer.jar)，以后就在你的项目下执行这个jar。用`java -jar`命令执行jar时，尾部可携带参数`create`或`update`。
+
+在你的项目下创建一个config.properties，内容仿照answerer提供的样本。
+
+命令中加上-D参数，如`java -jar -Dkey=value answerer.jar update`，可覆盖config.properties的配置。
 
 ###工作原理:
 通过语义分析来理解用户代码，从而自动生成与之适配的代码。相关技术可参考我博客 http://segmentfault.com/blog/sorra
