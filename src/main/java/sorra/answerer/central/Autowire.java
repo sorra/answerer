@@ -311,20 +311,20 @@ class Autowire {
   }
 
   static class WiringParams {
-    List<String> parameters;
-    List<String> parameterTypes;
-    String toCollTypeName;
+    final List<String> parameters;
+    final List<String> parameterTypes;
+    final String toCollTypeName;
 
     // Etal == Elemental (simple type or generic T)
-    String fromEtalQname;
-    String toEtalQname;
+    final String fromEtalQname;
+    final String toEtalQname;
 
-    String fromCollVar;
-    String toCollVar = "$rs";
-    String toEtalVar = "$r";
+    final String fromCollVar;
+    final String toCollVar = "$rs";
+    final String toEtalVar = "$r";
 
-    String returnTypeName;
-    String defaultMethodName;
+    final String returnTypeName;
+    final String defaultMethodName;
 
     WiringParams(String fromEtalQname, String toEtalQname, String toCollTypeName,
                  String fromCollVar, List<String> parameters, List<String> parameterTypes) {

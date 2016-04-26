@@ -107,7 +107,7 @@ public class ObjectPropsCopier {
                       singletonList(fromFieldTypeQname + "<" + fromEtalQname + "> " + fromFieldName),
                       singletonList(fromFieldTypeQname + "<" + fromEtalQname + ">"));
                   return Autowire.genAutowireMethod(wp, a -> {}, wireMethods, singletonList(
-                      writer -> ObjectPropsCopier.get("each", fromEtalQname, "$r", toEtalQname, AstFind.fields(toEtalQname), wireMethods)
+                      writer -> ObjectPropsCopier.get("each", fromEtalQname, wp.toEtalVar, toEtalQname, AstFind.fields(toEtalQname), wireMethods)
                           .getLines().forEach(writer::writeLine)));
                 });
             lines.add(new PropCopy(toVarName, toProp, fromVarName, fromProp, am.name).toString());
@@ -120,40 +120,18 @@ public class ObjectPropsCopier {
             }
           }
         } else if (typesIncompatible(toFieldTypeQname, fromFieldTypeQname)) {
-          // toType<-fromType conversion via wirer
+          // Single mode; toType<-fromType conversion via wirer
           AutowireMethod autowireMethod = wireMethods.stream()
               .filter(method -> method.retType.equals(toFieldTypeQname)
                   && method.paramTypes.size() == 1 && method.paramTypes.get(0).equals(fromFieldTypeQname))
               .findFirst().orElseGet(() -> {
-                String toFieldAsVar = StringUtil.asVarName(toFieldTypeQname);
-                String fromFieldAsVar = StringUtil.asVarName(fromFieldTypeQname);
-
-                Consumer<PartWriter> midWriting = methodWriter -> {
-                  methodWriter.writeLine(format("%s %s = new %s();", toFieldTypeQname, toFieldAsVar, toFieldTypeQname));
-                  ObjectPropsCopier.get(fromFieldAsVar, fromFieldTypeQname, toFieldAsVar, toFieldTypeQname,
-                      AstFind.fields(toFieldTypeQname), wireMethods)
-                      .getLines().forEach(methodWriter::writeLine);
-                };
-                // Generate autowire method before fullfiling its body, to avoid cyclic autowiring
-                PartWriter methodWriter = new PartWriter();
-                Pair<AutowireMethod, Boolean> autowirer = Autowire.genAutowireMethodHeader(toFieldTypeQname, toFieldAsVar,
-                    singletonList(fromFieldTypeQname), singletonList(fromFieldTypeQname + " " + fromFieldAsVar),
-                    methodWriter, wireMethods);
-                if (!autowirer.getRight()) {
-                  return autowirer.getLeft();
-                }
-                methodWriter.setIndent(1);
-                methodWriter.writeLine(format("static %s %s(%s) {",
-                    toFieldTypeQname, autowirer.getLeft().name, String.join(", ", autowirer.getLeft().params)));
-                methodWriter.setIndent(2);
-                methodWriter.writeLine(format("if (%s == null) return null;\n", fromFieldAsVar));
-
-                midWriting.accept(methodWriter);
-
-                methodWriter.writeLine(format("return %s;", toFieldAsVar));
-                methodWriter.setIndent(1);
-                methodWriter.writeLine("}\n");
-                return autowirer.getLeft();
+                String fromEtalVar = StringUtil.asVarName(fromFieldTypeQname);
+                WiringParams wp = new WiringParams(fromFieldTypeQname, toFieldTypeQname, null, null,
+                    singletonList(fromFieldTypeQname+" "+fromEtalVar), singletonList(fromFieldTypeQname));
+                return Autowire.genAutowireMethod(wp, a -> {}, wireMethods, singletonList(writer -> {
+                  ObjectPropsCopier.get(fromEtalVar, fromFieldTypeQname, wp.toEtalVar, toFieldTypeQname,
+                      AstFind.fields(toFieldTypeQname), wireMethods).getLines().forEach(writer::writeLine);
+                }));
               });
           lines.add(new PropCopy(toVarName, toProp, fromVarName, fromProp, autowireMethod.name).toString());
         } else {
