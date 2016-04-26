@@ -1,15 +1,12 @@
 package sorra.answerer.central;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import sorra.answerer.ast.Parser;
+import sorra.answerer.io.FileUtil;
 
 public class Sources {
   private static Map<String, File> qnamesVsFiles = new ConcurrentHashMap<>();
@@ -24,11 +21,7 @@ public class Sources {
       System.err.println("No file for qname: " + qname);
       return null;
     }
-    try {
-      return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
+    return FileUtil.read(file);
   }
 
   public static CompilationUnit getCuByQname(String qname) {
