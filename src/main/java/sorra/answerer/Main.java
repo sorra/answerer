@@ -1,5 +1,7 @@
 package sorra.answerer;
 
+import java.text.DecimalFormat;
+
 import sorra.answerer.central.DoWire;
 import sorra.answerer.central.ProjectGenerator;
 import sorra.answerer.util.CommandProperties;
@@ -25,8 +27,8 @@ public class Main {
         DoWire.run(projectPath, javaSubDir);
       }
     } finally {
-      long timeCost = System.currentTimeMillis() - timeStart;
-      System.out.printf("Answerer time cost: %d.%d seconds\n", timeCost / 1000, timeCost % 1000);
+      double timeCost = System.currentTimeMillis() - timeStart;
+      System.out.printf("Answerer time cost: %s seconds\n", new DecimalFormat("0.000").format(timeCost / 1000));
     }
   }
 }
