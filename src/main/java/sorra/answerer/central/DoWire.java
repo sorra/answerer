@@ -19,8 +19,8 @@ import sorra.answerer.util.StringUtil;
 
 
 public class DoWire {
-  public static void run(String projectDir, String javaSubdir) {
-    Supplier<Collection<File>> findAll = () -> FileWalker.findAll(new Path[]{Paths.get(projectDir)},
+  public static void run(String projectPath, String javaSubdir) {
+    Supplier<Collection<File>> findAll = () -> FileWalker.findAll(new Path[]{Paths.get(projectPath)},
         path -> {
           String p = path.toString();
           return p.endsWith(".java") && !p.equals("package-info.java");
@@ -34,7 +34,7 @@ public class DoWire {
     FileWalker.walkAll(findAll.get(), fileAction(DoWire::processEnableRest), 1);
     FileWalker.walkAll(findAll.get(), fileAction(DoWire::processUserFunction), 1);
 
-    Autowire.writeWirers(projectDir + "/" + javaSubdir);
+    Autowire.writeWirers(projectPath + "/" + javaSubdir);
   }
 
   private static Consumer<File> fileAction(Consumer<AstContext> consumer) {
