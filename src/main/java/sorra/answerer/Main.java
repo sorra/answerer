@@ -14,7 +14,7 @@ public class Main {
         throw new IllegalArgumentException("Require a command");
       }
       String command = args[0];
-      CommandProperties commandProperties = new CommandProperties("config.properties");
+      CommandProperties commandProperties = new CommandProperties("as-config.properties");
       String projectName = commandProperties.getProperty("project.name");
       String projectPath = commandProperties.getProperty("project.path", projectName);
       String basePackage = commandProperties.getProperty("base.package");

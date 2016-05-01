@@ -54,7 +54,7 @@ AOP功能介绍 [点这里](https://github.com/sorra/answerer/wiki/AOP)
 ###Quick start:
 需要JDK 8。已有1个Demo项目，已包含entity和DTO类。
 
-- 0. 构建: `./gradlew shadowJar`，jar生成在build/libs/answerer-0.2-all.jar, 根目录下config.properties含有配置参数
+- 0. 构建: `./gradlew shadowJar`，jar生成在build/libs/answerer-0.2-all.jar ; Answerer目录下as-config.properties含有配置参数
 - 1. 生成REST服务: 在answerer目录下运行 `java -jar build/libs/answerer-0.2-all.jar update`
 - 2. 运行: 在example目录下运行 `./gradlew run`(请确保8080端口可用)，会构建并启动web服务。
 - 3. 检验: 用curl请求新建1个数据`curl -l -H "Content-type: application/json" -X POST -d {} http://localhost:8080/user/new`，浏览器打开http://localhost:8080/user/all 可看到
@@ -64,9 +64,9 @@ AOP功能介绍 [点这里](https://github.com/sorra/answerer/wiki/AOP)
 ###用法解释
 构建后生成了answerer的可执行jar，可以起个短点的名字(如answerer.jar)，以后就在你的项目下执行这个jar。用`java -jar`命令执行jar时，尾部可携带参数`create`或`update`。
 
-在你的项目下创建一个config.properties，内容仿照answerer提供的样本。
+在你的项目下创建一个as-config.properties，内容仿照answerer提供的样本。
 
-命令中加上-D参数，如`java -jar -Dkey=value answerer.jar update`，可覆盖config.properties的配置。
+命令中加上-D参数，如`java -jar -Dkey=value answerer.jar update`，可覆盖as-config.properties的配置。
 
 ###工作原理:
 通过语义分析来理解用户代码，从而自动生成与之适配的代码。相关技术可参考我博客 http://segmentfault.com/blog/sorra
