@@ -1,3 +1,6 @@
+**Answerer正在移植到[Hasta](https://github.com/sorra/hasta)，一个简捷的库，不再依赖代码生成。**
+-
+
 Answerer, 即凯尔特神话的神剑Fragarach，能自动出鞘攻击，因此别名Answerer(应答之剑)。
 
 Answerer只是个工具，不会引入依赖，你可以随时抛开它。使用Answerer，你只需编写业务逻辑代码，并提供一点配置信息，Answerer会自动为你生成其他所需的代码，构成可运行的程序。生成的是平铺直叙的代码，可读性、可调试性都高于流行框架中基于反射的代码。
