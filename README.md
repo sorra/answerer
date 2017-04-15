@@ -21,7 +21,7 @@ Call the `autowire` method to inject any variable, and it will be wired into ret
 
 Your class using `autowire` needs to add `$UserFunction` to Javadoc，and you can write code like this:
 
-```
+```java
 // User has id, email, password, nickname, avatar, brief
 // UserView has id, name, avatar, brief
 
@@ -41,7 +41,7 @@ Collection<UserView> uvs = Wirer.autowire(users);
 
 Note that there is a small difference of property name between two classes. What's more, to generate RESTful services it should know the relationship of entity and DTO. So you need to write a few simple configurations in your source folder like this:
 
-```
+```java
 // Written in Java which is refactorable (and YAML is welcome in the future)
 import sorra.answerer.api.Config;
 class MyConfig extends Config {
