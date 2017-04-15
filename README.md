@@ -13,10 +13,9 @@ Since it is so, does Answerer devalue developers? No, developers save time in im
 
 Answerer is under development but its core is ready for use. Currently its core can wire data and its web extension can generate RESTful services.
 
-###Features:
+### Features:
 - Wire data objects automatically
 - Compile-time duck typing
-- Compile-time AOP：straight-forward and supports custom annotations and property injection
 
 Call the `autowire` method to inject any variable, and it will be wired into returned types automatically (errors will be reported if you injected improper variables). This is more reliable and convenient than Spring.
 
@@ -58,9 +57,7 @@ If you want to generate RESTful CRUD from a data class, you need to add `$Enable
 
 Currently controllers are overwritten at every time you run update, but you can remove `$EnableRest` to avoid updating controllers (while wiring still works).
 
-AOP功能介绍 [点这里](https://github.com/sorra/answerer/wiki/AOP)
-
-###Quick start:
+### Quick start:
 Requires JDK 8. There's a demo contain entity and DTO.
 
 - 0. Build: `./gradlew shadowJar`，the jar is created at build/libs/answerer-0.2-all.jar ; the file `as-config.properties`  contains configuration parameters.
@@ -70,26 +67,26 @@ Requires JDK 8. There's a demo contain entity and DTO.
 
 To generate a new project, run `java -jar build/libs/answerer-0.2-all.jar create` in Answerer folder，then write entity or DTO similar to example, and run update.
 
-###Explanation
+### Explanation
 The built jar accepts command like `create` or `update`.
 
 Create a file `as-config.properties` in your existing project folder, similar to example.
 
 You can add -D parameter like `java -jar -Dkey=value answerer.jar update` to override the configurations in `as-config.properties`.
 
-###How it works:
+### How it works:
 Understand user code by syntactical and semantic analysis so that can generate code to cooperate with user code。My Chinese blog explains the technology in detail: https://www.qingjingjie.com/blogs/2
 
-##Coming features
+### Coming features
 - support constructors with parameters
 - TDD friendly design
 
-##Features in roadmap
+### Features in roadmap
 - Inject any data or relationship automatically，no matter it is from SQL, NoSQL or even Micro-services.
 - Lazy loading and Batch loading
 - Distributed system solution similar to Micro-services
 
-##Features to be discussed
+### Features to be discussed
 - A recipes system supporting various third-party frameworks
 - SQL DSL
 - Corountine
