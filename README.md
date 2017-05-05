@@ -1,7 +1,7 @@
 **Answerer's core is migrated to [Hasta](https://github.com/sorra/hasta)，a simple library getting rid of code generation**
 -
 
-[中文(Chinese)](https://github.com/sorra/answerer/blob/master/README.md)
+[中文(Chinese)](https://github.com/sorra/answerer/blob/master/README-cn.md)
 
 Answerer is the Celtic mythical sword Fragarach that can attack automatically.
 
