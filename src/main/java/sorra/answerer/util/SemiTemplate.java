@@ -28,14 +28,14 @@ public final class SemiTemplate {
       if (match.begin > current.begin) {
         pieces.add(str.substring(current.begin, match.begin));
       } else if (match.begin < current.begin) {
-        throw new IllegalArgumentException("Wrong matcher implementation!");
+        throw new IllegalArgumentException(String.format("Matcher error! match.end=%s, current.end=%s", match.end, current.end));
       }
       pieces.add(match);
       
       if (match.end == current.end) {
         return pieces;
       } else if (match.end > current.end) {
-        throw new IllegalArgumentException("Wrong matcher implementation!");
+        throw new IllegalArgumentException(String.format("Matcher error! match.end=%s, current.end=%s", match.end, current.end));
       }
       // Continue from the rest
       current = new Range(match.end, len);
@@ -115,10 +115,6 @@ public final class SemiTemplate {
     
     public static <T> Section<T> f(T data, int begin, int end) {
       return new Section<T>(data, begin, end);
-    }
-    
-    public static Section<String> substr(String str, int begin, int end) {
-      return new Section<String>(str.substring(begin, end), begin, end);
     }
     
     public String toString() {
